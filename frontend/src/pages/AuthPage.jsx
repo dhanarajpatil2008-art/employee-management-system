@@ -179,19 +179,22 @@ const AuthPage = () => {
     }}>
 
       {/* Main Authentication Card */}
-      <div style={{
-        maxWidth: '480px',
-        width: '100%',
-        backgroundColor: 'rgba(30, 41, 59, 0.75)',
-        borderRadius: '24px',
-        boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)',
-        padding: '40px 36px',
-        border: '1px solid rgba(255, 255, 255, 0.12)',
-        backdropFilter: 'blur(20px)',
-        WebkitBackdropFilter: 'blur(20px)',
-        position: 'relative',
-        color: '#ffffff'
-      }}>
+      <div
+        className="auth-card-wrap"
+        style={{
+          maxWidth: '480px',
+          width: '100%',
+          backgroundColor: 'rgba(30, 41, 59, 0.75)',
+          borderRadius: '24px',
+          boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)',
+          padding: '40px 36px',
+          border: '1px solid rgba(255, 255, 255, 0.12)',
+          backdropFilter: 'blur(20px)',
+          WebkitBackdropFilter: 'blur(20px)',
+          position: 'relative',
+          color: '#ffffff'
+        }}
+      >
 
         {/* Back to Home Link */}
         <button

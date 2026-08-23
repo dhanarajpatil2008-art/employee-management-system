@@ -152,11 +152,14 @@ const LandingPage = () => {
           </div>
 
           {/* Navigation Links (Home, Capabilities, Contact Us) */}
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '28px'
-          }}>
+          <div
+            className="landing-nav-links"
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '28px'
+            }}
+          >
             <button
               type="button"
               onClick={() => scrollToSection('home')}
@@ -332,13 +335,16 @@ const LandingPage = () => {
             </div>
 
             {/* Quick Metrics */}
-            <div style={{
-              display: 'flex',
-              gap: '32px',
-              borderTop: '1px solid rgba(255, 255, 255, 0.08)',
-              paddingTop: '24px',
-              flexWrap: 'wrap'
-            }}>
+            <div
+              className="landing-stats-grid"
+              style={{
+                display: 'flex',
+                gap: '32px',
+                borderTop: '1px solid rgba(255, 255, 255, 0.08)',
+                paddingTop: '24px',
+                flexWrap: 'wrap'
+              }}
+            >
               <div>
                 <div style={{ fontSize: '1.45rem', fontWeight: '800', color: '#818cf8' }}>100%</div>
                 <div style={{ fontSize: '0.8rem', color: '#94a3b8' }}>Role-Based Access</div>

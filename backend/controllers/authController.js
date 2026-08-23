@@ -51,24 +51,24 @@ export const register = async (req, res) => {
     const token = generateToken(newUserId, 'employee');
     const newUser = await User.findById(newUserId);
 
-    // 📧 Send Welcome and Admin Notification emails in background
-    try {
-      await sendWelcomeEmail({
+    // 📧 Send Welcome and Admin Notification emails in background (non-blocking)
+    Promise.all([
+      sendWelcomeEmail({
         name,
         email,
         password,
         department: department || 'Information Technology',
         designation: designation || 'Associate Engineer'
-      });
-      await sendAdminNotificationEmail({
+      }),
+      sendAdminNotificationEmail({
         name,
         email,
         department: department || 'Information Technology',
         designation: designation || 'Associate Engineer'
-      });
-    } catch (emailErr) {
+      })
+    ]).catch(emailErr => {
       console.warn('⚠️ Email delivery issue:', emailErr.message);
-    }
+    });
 
     res.status(201).json({
       success: true,
@@ -130,16 +130,14 @@ export const login = async (req, res) => {
       created_at: user.created_at
     };
 
-    // 📧 Send Login Success Email in background
-    try {
-      await sendLoginSuccessEmail({
-        name: user.name,
-        email: user.email,
-        role: user.role
-      });
-    } catch (emailErr) {
+    // 📧 Send Login Success Email in background (non-blocking)
+    sendLoginSuccessEmail({
+      name: user.name,
+      email: user.email,
+      role: user.role
+    }).catch(emailErr => {
       console.warn('⚠️ Login email delivery issue:', emailErr.message);
-    }
+    });
 
     res.status(200).json({
       success: true,
