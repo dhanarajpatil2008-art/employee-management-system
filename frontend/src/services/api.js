@@ -1,8 +1,8 @@
 import axios from 'axios';
 
-// Backend Base URL
+// Backend Base URL (Uses Render Live Cloud API)
 const API = axios.create({
-  baseURL: 'http://localhost:5000/api',
+  baseURL: import.meta.env.VITE_API_URL || 'https://employee-management-system-tund.onrender.com/api',
   headers: {
     'Content-Type': 'application/json'
   }
