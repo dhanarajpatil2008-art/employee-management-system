@@ -1,8 +1,9 @@
 import axios from 'axios';
 
-// Backend Base URL (Uses Render Live Cloud API)
+// Backend Base URL (Auto-detects localhost vs Live Render Cloud API)
+const isLocal = typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
 const API = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || 'https://employee-management-system-tund.onrender.com/api',
+  baseURL: import.meta.env.VITE_API_URL || (isLocal ? 'http://localhost:5000/api' : 'https://employee-management-system-tund.onrender.com/api'),
   headers: {
     'Content-Type': 'application/json'
   }
