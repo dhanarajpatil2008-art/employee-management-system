@@ -3,13 +3,14 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
-// MySQL Connection Pool
+// MySQL Connection Pool (Supports both Local XAMPP and Cloud MySQL with SSL)
 const pool = mysql.createPool({
   host: process.env.DB_HOST || 'localhost',
   user: process.env.DB_USER || 'root',
   password: process.env.DB_PASSWORD || '',
   database: process.env.DB_NAME || 'ems_db',
   port: Number(process.env.DB_PORT) || 3306,
+  ssl: (process.env.DB_SSL === 'true' || process.env.DB_PORT === '14143') ? { rejectUnauthorized: false } : undefined,
   waitForConnections: true,
   connectionLimit: 10,
   queueLimit: 0
@@ -17,20 +18,20 @@ const pool = mysql.createPool({
 
 /**
  * 🗄️ Database & Tables Auto-Initialization
- * Passwords are saved in plain text (as required for demo).
  */
 export const initDB = async () => {
   try {
-    // 1. Root connection to create DB if needed
-    const rootConnection = await mysql.createConnection({
-      host: process.env.DB_HOST || 'localhost',
-      user: process.env.DB_USER || 'root',
-      password: process.env.DB_PASSWORD || '',
-      port: Number(process.env.DB_PORT) || 3306,
-    });
-
-    await rootConnection.query(`CREATE DATABASE IF NOT EXISTS \`${process.env.DB_NAME || 'ems_db'}\`;`);
-    await rootConnection.end();
+    // 1. If running on local localhost, ensure database exists
+    if (!process.env.DB_HOST || process.env.DB_HOST === 'localhost') {
+      const rootConnection = await mysql.createConnection({
+        host: process.env.DB_HOST || 'localhost',
+        user: process.env.DB_USER || 'root',
+        password: process.env.DB_PASSWORD || '',
+        port: Number(process.env.DB_PORT) || 3306,
+      });
+      await rootConnection.query(`CREATE DATABASE IF NOT EXISTS \`${process.env.DB_NAME || 'ems_db'}\`;`);
+      await rootConnection.end();
+    }
 
     // 2. Table 1: USERS Table
     const createUsersTable = `
