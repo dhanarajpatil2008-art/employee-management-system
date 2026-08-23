@@ -60,6 +60,14 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  // 3. Logout Function
+  const logout = () => {
+    setToken(null);
+    setUser(null);
+    localStorage.removeItem('ems_token');
+    localStorage.removeItem('ems_user');
+  };
+
   // Mobile Sidebar Drawer State
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const toggleSidebar = () => setSidebarOpen(prev => !prev);
