@@ -1,15 +1,27 @@
 import React from 'react';
 import { useAuth } from '../context/AuthContext';
-import { LogOut, User, Bell } from 'lucide-react';
+import { LogOut, User, Bell, Menu } from 'lucide-react';
 
 const Navbar = ({ title, subtitle }) => {
-  const { user, logout } = useAuth();
+  const { user, logout, toggleSidebar } = useAuth();
 
   return (
     <header className="topbar">
-      <div className="topbar-title">
-        <h1>{title}</h1>
-        {subtitle && <p>{subtitle}</p>}
+      <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+        {/* Mobile Hamburger Toggle */}
+        <button
+          type="button"
+          className="mobile-menu-toggle-btn"
+          onClick={toggleSidebar}
+          title="Open Navigation Menu"
+        >
+          <Menu size={22} />
+        </button>
+
+        <div className="topbar-title">
+          <h1>{title}</h1>
+          {subtitle && <p>{subtitle}</p>}
+        </div>
       </div>
 
       <div className="topbar-actions">
