@@ -10,7 +10,6 @@ import {
 } from 'lucide-react';
 
 const DepartmentsPage = () => {
-  const navigate = useNavigate();
   const [departments, setDepartments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
