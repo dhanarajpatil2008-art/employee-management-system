@@ -2,13 +2,14 @@ import React, { useState, useEffect } from 'react';
 import API from '../../services/api';
 import Navbar from '../../components/Navbar';
 import Modal from '../../components/Modal';
-import { UserPlus, Search, Edit2, Trash2, Mail, Phone, Building } from 'lucide-react';
+import { UserPlus, Search, Edit2, Trash2, Mail, Phone, Building, Eye, EyeOff, Key, ShieldCheck } from 'lucide-react';
 
 const EmployeesPage = () => {
   const [employees, setEmployees] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [deptFilter, setDeptFilter] = useState('ALL');
+  const [visiblePasswords, setVisiblePasswords] = useState({});
 
   // Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -23,6 +24,10 @@ const EmployeesPage = () => {
     role: 'employee'
   });
   const [formError, setFormError] = useState('');
+
+  const togglePasswordVisibility = (id) => {
+    setVisiblePasswords((prev) => ({ ...prev, [id]: !prev[id] }));
+  };
 
   useEffect(() => {
     fetchEmployees();
@@ -173,7 +178,7 @@ const EmployeesPage = () => {
                   <th>Employee Name</th>
                   <th>Contact Info</th>
                   <th>Department & Role</th>
-                  <th>Password (Plain)</th>
+                  <th>Password (Admin Access)</th>
                   <th>Actions</th>
                 </tr>
               </thead>
@@ -205,9 +210,44 @@ const EmployeesPage = () => {
                         </span>
                       </td>
                       <td>
-                        <code style={{ background: '#f1f5f9', padding: '4px 8px', borderRadius: '4px', fontSize: '0.82rem' }}>
-                          {emp.password}
-                        </code>
+                        <div style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '8px',
+                          background: '#f8fafc',
+                          padding: '6px 12px',
+                          borderRadius: '8px',
+                          border: '1px solid #e2e8f0',
+                          boxShadow: '0 1px 2px rgba(0,0,0,0.03)'
+                        }}>
+                          <Key size={13} color="#6366f1" />
+                          <span style={{
+                            fontFamily: 'monospace',
+                            fontWeight: '700',
+                            fontSize: '0.88rem',
+                            color: '#0f172a',
+                            letterSpacing: visiblePasswords[emp.id] ? 'normal' : '2px'
+                          }}>
+                            {visiblePasswords[emp.id] ? emp.password : '••••••'}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => togglePasswordVisibility(emp.id)}
+                            style={{
+                              background: 'transparent',
+                              border: 'none',
+                              cursor: 'pointer',
+                              padding: '2px',
+                              display: 'flex',
+                              alignItems: 'center',
+                              color: '#64748b',
+                              transition: 'color 0.2s'
+                            }}
+                            title={visiblePasswords[emp.id] ? 'Hide Password' : 'Show Password'}
+                          >
+                            {visiblePasswords[emp.id] ? <EyeOff size={14} color="#ef4444" /> : <Eye size={14} color="#4f46e5" />}
+                          </button>
+                        </div>
                       </td>
                       <td>
                         <div style={{ display: 'flex', gap: '8px' }}>

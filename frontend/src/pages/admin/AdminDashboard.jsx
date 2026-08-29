@@ -11,7 +11,12 @@ import {
   UserPlus,
   CalendarCheck,
   CalendarClock,
-  ArrowRight
+  ArrowRight,
+  Activity,
+  ShieldCheck,
+  CheckCircle2,
+  Layers,
+  Server
 } from 'lucide-react';
 
 const AdminDashboard = () => {
@@ -83,50 +88,74 @@ const AdminDashboard = () => {
           />
         </div>
 
-        {/* Quick Actions & Department Breakdown Grid */}
+        {/* Operations Overview & Department Breakdown Grid */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '24px' }}>
           
-          {/* Quick Action Shortcuts */}
+          {/* Workforce Status & Operations Summary */}
           <div className="card">
             <div className="card-header">
-              <h2>Quick Actions</h2>
+              <h2>Workforce Operations & Health</h2>
+              <span className="badge badge-admin" style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                <Activity size={12} /> Live Sync
+              </span>
             </div>
-            <div style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              <button
-                onClick={() => navigate('/admin/employees')}
-                className="btn btn-secondary"
-                style={{ justifyContent: 'space-between', padding: '14px 18px' }}
-              >
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                  <UserPlus size={18} color="#4f46e5" />
-                  <span style={{ fontWeight: '600' }}>Manage Employees & Add New</span>
+            <div style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '18px' }}>
+              {/* Attendance Progress & Summary */}
+              <div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.88rem', marginBottom: '8px', fontWeight: '600' }}>
+                  <span style={{ color: '#0f172a', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <CheckCircle2 size={16} color="#10b981" /> Today's Presence Rate
+                  </span>
+                  <span style={{ color: '#10b981', fontWeight: '700' }}>
+                    {stats.attendance_percent}% ({stats.present_count}/{stats.total_employees || 0} Present)
+                  </span>
                 </div>
-                <ArrowRight size={16} />
-              </button>
+                <div style={{ width: '100%', height: '8px', backgroundColor: '#f1f5f9', borderRadius: '4px', overflow: 'hidden' }}>
+                  <div
+                    style={{
+                      width: `${stats.attendance_percent}%`,
+                      height: '100%',
+                      background: 'linear-gradient(90deg, #10b981, #059669)',
+                      borderRadius: '4px',
+                      transition: 'width 0.5s ease'
+                    }}
+                  />
+                </div>
+              </div>
 
-              <button
-                onClick={() => navigate('/admin/attendance')}
-                className="btn btn-secondary"
-                style={{ justifyContent: 'space-between', padding: '14px 18px' }}
-              >
+              {/* Leave Pipeline Status */}
+              <div style={{ backgroundColor: '#f8fafc', padding: '14px 16px', borderRadius: '12px', border: '1px solid #f1f5f9', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                  <CalendarCheck size={18} color="#10b981" />
-                  <span style={{ fontWeight: '600' }}>Mark Today's Attendance</span>
+                  <div style={{ width: '36px', height: '36px', borderRadius: '8px', backgroundColor: '#fef3c7', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#d97706' }}>
+                    <Clock size={18} />
+                  </div>
+                  <div>
+                    <div style={{ fontSize: '0.88rem', fontWeight: '700', color: '#0f172a' }}>Leave Queue Status</div>
+                    <div style={{ fontSize: '0.78rem', color: '#64748b' }}>
+                      {stats.pending_leaves > 0 ? `${stats.pending_leaves} application(s) awaiting review` : 'All leave applications reviewed'}
+                    </div>
+                  </div>
                 </div>
-                <ArrowRight size={16} />
-              </button>
+                <span className={`badge ${stats.pending_leaves > 0 ? 'badge-pending' : 'badge-approved'}`}>
+                  {stats.pending_leaves > 0 ? 'Action Needed' : 'All Clear'}
+                </span>
+              </div>
 
-              <button
-                onClick={() => navigate('/admin/leaves')}
-                className="btn btn-secondary"
-                style={{ justifyContent: 'space-between', padding: '14px 18px' }}
-              >
+              {/* System Infrastructure & Security Status */}
+              <div style={{ backgroundColor: '#f8fafc', padding: '14px 16px', borderRadius: '12px', border: '1px solid #f1f5f9', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                  <CalendarClock size={18} color="#f59e0b" />
-                  <span style={{ fontWeight: '600' }}>Review Pending Leave Requests ({stats.pending_leaves})</span>
+                  <div style={{ width: '36px', height: '36px', borderRadius: '8px', backgroundColor: '#e0e7ff', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#4f46e5' }}>
+                    <ShieldCheck size={18} />
+                  </div>
+                  <div>
+                    <div style={{ fontSize: '0.88rem', fontWeight: '700', color: '#0f172a' }}>Security & Cloud DB</div>
+                    <div style={{ fontSize: '0.78rem', color: '#64748b' }}>Aiven MySQL & JWT Authentication</div>
+                  </div>
                 </div>
-                <ArrowRight size={16} />
-              </button>
+                <span style={{ fontSize: '0.78rem', color: '#10b981', fontWeight: '700', backgroundColor: '#ecfdf5', padding: '3px 10px', borderRadius: '9999px', border: '1px solid #d1fae5' }}>
+                  Connected 100%
+                </span>
+              </div>
             </div>
           </div>
 

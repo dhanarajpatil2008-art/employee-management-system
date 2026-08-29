@@ -20,10 +20,10 @@ const User = {
     return rows[0] || null;
   },
 
-  // 3. Get all employees list (For admin)
+  // 3. Get all employees list (For admin - includes password)
   getAll: async () => {
     const [rows] = await pool.query(
-      'SELECT id, name, email, phone, department, designation, role, created_at FROM users ORDER BY id DESC'
+      'SELECT id, name, email, password, phone, department, designation, role, created_at FROM users ORDER BY id DESC'
     );
     return rows;
   },

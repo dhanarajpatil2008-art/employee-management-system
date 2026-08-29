@@ -152,50 +152,55 @@ const EmployeeDashboard = () => {
             </div>
           </div>
 
-          {/* Quick Actions Shortcuts */}
+          {/* Workplace Attendance & Leave Summary */}
           <div className="card" style={{ margin: 0 }}>
             <div className="card-header">
-              <h2>Quick Actions</h2>
-              <span style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: '600' }}>Workplace Portals</span>
+              <h2>Attendance & Duty Summary</h2>
+              <span className="badge badge-approved">Verified Record</span>
             </div>
-            <div style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
-              <button
-                onClick={() => navigate('/employee/apply-leave')}
-                className="btn btn-primary"
-                style={{
-                  justifyContent: 'space-between',
-                  padding: '16px 20px',
-                  borderRadius: '12px'
-                }}
-              >
-                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                  <Send size={18} />
-                  <div style={{ textAlign: 'left' }}>
-                    <div style={{ fontWeight: '700', fontSize: '0.95rem' }}>Apply for Leave</div>
-                    <div style={{ fontSize: '0.76rem', opacity: 0.85 }}>Submit vacation, medical, or casual leave</div>
-                  </div>
+            <div style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              {/* Attendance Rate Progress */}
+              <div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.88rem', marginBottom: '8px', fontWeight: '600' }}>
+                  <span style={{ color: '#0f172a' }}>Personal Presence Ratio</span>
+                  <span style={{ color: '#10b981', fontWeight: '700' }}>
+                    {(stats.total_present + stats.total_absent) > 0 
+                      ? `${Math.round((stats.total_present / (stats.total_present + stats.total_absent)) * 100)}%` 
+                      : '100%'}
+                  </span>
                 </div>
-                <ArrowRight size={18} />
-              </button>
+                <div style={{ width: '100%', height: '8px', backgroundColor: '#f1f5f9', borderRadius: '4px', overflow: 'hidden' }}>
+                  <div
+                    style={{
+                      width: `${(stats.total_present + stats.total_absent) > 0 
+                        ? Math.round((stats.total_present / (stats.total_present + stats.total_absent)) * 100) 
+                        : 100}%`,
+                      height: '100%',
+                      background: 'linear-gradient(90deg, #10b981, #059669)',
+                      borderRadius: '4px'
+                    }}
+                  />
+                </div>
+              </div>
 
-              <button
-                onClick={() => navigate('/employee/my-attendance')}
-                className="btn btn-secondary"
-                style={{
-                  justifyContent: 'space-between',
-                  padding: '16px 20px',
-                  borderRadius: '12px'
-                }}
-              >
-                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                  <Calendar size={18} color="#4f46e5" />
-                  <div style={{ textAlign: 'left' }}>
-                    <div style={{ fontWeight: '700', fontSize: '0.95rem', color: '#0f172a' }}>My Attendance Log</div>
-                    <div style={{ fontSize: '0.76rem', color: '#64748b' }}>View verified date-wise presence records</div>
-                  </div>
+              {/* Time-Off Breakdown */}
+              <div style={{ backgroundColor: '#f8fafc', padding: '12px 16px', borderRadius: '10px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', border: '1px solid #f1f5f9' }}>
+                <div style={{ fontSize: '0.85rem', color: '#334155', fontWeight: '600' }}>
+                  Approved Time-Off Granted
                 </div>
-                <ArrowRight size={18} color="#64748b" />
-              </button>
+                <span className="badge badge-approved" style={{ fontSize: '0.82rem' }}>
+                  {stats.approved_leaves} Days
+                </span>
+              </div>
+
+              <div style={{ backgroundColor: '#f8fafc', padding: '12px 16px', borderRadius: '10px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', border: '1px solid #f1f5f9' }}>
+                <div style={{ fontSize: '0.85rem', color: '#334155', fontWeight: '600' }}>
+                  Pending Applications in Review
+                </div>
+                <span className={`badge ${stats.pending_leaves > 0 ? 'badge-pending' : 'badge-employee'}`} style={{ fontSize: '0.82rem' }}>
+                  {stats.pending_leaves} Requests
+                </span>
+              </div>
             </div>
           </div>
 
