@@ -69,15 +69,25 @@ const User = {
     return result.affectedRows > 0;
   },
 
-  // 7. Get unique departments summary
+  // 7. Get unique departments summary with assigned team members
   getDepartments: async () => {
-    const [rows] = await pool.query(
+    const [departments] = await pool.query(
       `SELECT department, COUNT(*) as employee_count 
        FROM users 
        WHERE role = 'employee' 
        GROUP BY department`
     );
-    return rows;
+    const [members] = await pool.query(
+      `SELECT id, name, email, phone, department, designation, role, created_at 
+       FROM users 
+       WHERE role = 'employee' 
+       ORDER BY name ASC`
+    );
+    return departments.map(d => ({
+      department: d.department,
+      employee_count: d.employee_count,
+      members: members.filter(m => m.department === d.department)
+    }));
   }
 };
 

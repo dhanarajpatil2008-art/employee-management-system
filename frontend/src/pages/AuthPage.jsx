@@ -43,6 +43,11 @@ const AuthPage = () => {
   // Inline Validation Errors
   const [validationErrors, setValidationErrors] = useState({});
 
+  // Pre-warm server connection immediately on page load
+  useEffect(() => {
+    fetch('https://employee-management-system-tund.onrender.com/').catch(() => {});
+  }, []);
+
   // Redirect if already authenticated
   useEffect(() => {
     if (user) {

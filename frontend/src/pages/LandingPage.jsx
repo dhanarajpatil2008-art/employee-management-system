@@ -28,6 +28,11 @@ const LandingPage = () => {
     message: ''
   });
 
+  // Pre-warm cloud server immediately in background on page load
+  useEffect(() => {
+    fetch('https://employee-management-system-tund.onrender.com/').catch(() => {});
+  }, []);
+
   const scrollToSection = (id) => {
     const element = document.getElementById(id);
     if (element) {
