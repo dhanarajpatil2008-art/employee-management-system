@@ -377,17 +377,17 @@ const AdminDashboard = () => {
             </div>
 
             {/* Row B: Pie Chart & Vertical Bar Chart */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.3fr', gap: '12px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.25fr', gap: '12px' }}>
               
               {/* Attendance Status Pie Chart */}
               <div style={powerBiChartBoxStyle}>
                 <div style={chartHeaderStyle}>Attendance Status Ratio</div>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-around', height: '140px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-around', height: '130px' }}>
                   {/* SVG Pie */}
-                  <div style={{ width: '90px', height: '90px', borderRadius: '50%', background: 'conic-gradient(#0078d4 0% 65%, #d83b01 65% 85%, #ffb900 85% 100%)', boxShadow: '0 2px 6px rgba(0,0,0,0.1)' }}></div>
+                  <div style={{ width: '84px', height: '84px', borderRadius: '50%', background: 'conic-gradient(#0078d4 0% 67%, #d83b01 67% 85%, #ffb900 85% 100%)', boxShadow: '0 2px 6px rgba(0,0,0,0.08)' }}></div>
 
                   {/* Legend */}
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', fontSize: '0.72rem', color: '#334155' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', fontSize: '0.74rem', color: '#334155' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                       <span style={{ width: '8px', height: '8px', borderRadius: '2px', backgroundColor: '#0078d4' }}></span>
                       <span>Present ({filteredData.presentCount})</span>
@@ -407,22 +407,22 @@ const AdminDashboard = () => {
               {/* Staff Count by Department (Vertical Bar Chart) */}
               <div style={powerBiChartBoxStyle}>
                 <div style={chartHeaderStyle}>Staff Headcount by Department</div>
-                <div style={{ height: '130px', display: 'flex', alignItems: 'flex-end', justifyContent: 'space-around', paddingTop: '10px' }}>
+                <div style={{ height: '130px', display: 'flex', alignItems: 'flex-end', justifyContent: 'space-around', paddingBottom: '4px' }}>
                   {filteredData.deptDist.map((d, i) => {
-                    const max = Math.max(...filteredData.deptDist.map(x => x.count), 1);
-                    const h = Math.max(15, (d.count / max) * 90);
+                    const maxCount = Math.max(...filteredData.deptDist.map(x => x.count), 1);
+                    const barHeight = Math.max(12, Math.round((d.count / maxCount) * 75));
                     return (
-                      <div key={i} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', width: '38px' }}>
-                        <span style={{ fontSize: '0.7rem', fontWeight: '700', color: '#4f46e5' }}>{d.count}</span>
+                      <div key={i} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', width: '42px' }}>
+                        <span style={{ fontSize: '0.72rem', fontWeight: '700', color: '#2b579a' }}>{d.count}</span>
                         <div style={{
-                          width: '26px',
-                          height: `${h}px`,
-                          backgroundColor: '#5b6cb8',
+                          width: '24px',
+                          height: `${barHeight}px`,
+                          backgroundColor: '#4c63b6',
                           borderRadius: '2px 2px 0 0',
                           transition: 'height 0.3s ease'
                         }}></div>
-                        <span style={{ fontSize: '0.62rem', color: '#64748b', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '40px' }}>
-                          {d.department.split(' ')[0]}
+                        <span style={{ fontSize: '0.62rem', color: '#64748b', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '44px', textAlign: 'center' }} title={d.department}>
+                          {d.department.length > 7 ? `${d.department.substring(0, 6)}..` : d.department}
                         </span>
                       </div>
                     );
@@ -432,29 +432,35 @@ const AdminDashboard = () => {
 
             </div>
 
-            {/* Row C: Horizontal Bars & Leave Status Bar */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 0.8fr 1fr', gap: '12px' }}>
+            {/* Row C: Horizontal Bars & Dropdown & Leave Status */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr 1.1fr', gap: '12px' }}>
               
               {/* Workforce Ratio by Unit (Horizontal Bars) */}
               <div style={powerBiChartBoxStyle}>
                 <div style={chartHeaderStyle}>Workforce by Unit</div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginTop: '6px' }}>
-                  {filteredData.deptDist.slice(0, 3).map((d, i) => (
-                    <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.72rem' }}>
-                      <span style={{ width: '60px', color: '#475569', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{d.department}</span>
-                      <div style={{ flex: 1, height: '12px', backgroundColor: '#f1f5f9', borderRadius: '2px', overflow: 'hidden' }}>
-                        <div style={{ width: `${Math.min(100, d.count * 20)}%`, height: '100%', backgroundColor: '#2b579a' }}></div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '10px', height: '70px', justifyContent: 'center' }}>
+                  {filteredData.deptDist.slice(0, 3).map((d, i) => {
+                    const totalE = filteredData.totalEmps || 1;
+                    const barW = Math.min(100, Math.round((d.count / totalE) * 100));
+                    return (
+                      <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.72rem' }}>
+                        <span style={{ width: '62px', color: '#475569', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontSize: '0.68rem' }} title={d.department}>
+                          {d.department.length > 8 ? `${d.department.substring(0, 7)}..` : d.department}
+                        </span>
+                        <div style={{ flex: 1, height: '10px', backgroundColor: '#f1f5f9', borderRadius: '2px', overflow: 'hidden' }}>
+                          <div style={{ width: `${barW}%`, height: '100%', backgroundColor: '#2b579a', borderRadius: '2px' }}></div>
+                        </div>
+                        <span style={{ fontWeight: '700', color: '#0f172a', width: '16px', textAlign: 'right', fontSize: '0.7rem' }}>{d.count}</span>
                       </div>
-                      <span style={{ fontWeight: '700', color: '#0f172a', width: '20px' }}>{d.count}</span>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
 
               {/* Department Dropdown Slicer Box */}
               <div style={powerBiChartBoxStyle}>
                 <div style={chartHeaderStyle}>Department_Type</div>
-                <div style={{ marginTop: '10px' }}>
+                <div style={{ height: '70px', display: 'flex', alignItems: 'center' }}>
                   <select
                     value={dropdownDept}
                     onChange={(e) => setDropdownDept(e.target.value)}
@@ -463,10 +469,11 @@ const AdminDashboard = () => {
                       padding: '8px 10px',
                       borderRadius: '4px',
                       border: '1px solid #cbd5e1',
-                      fontSize: '0.82rem',
+                      fontSize: '0.8rem',
                       fontWeight: '600',
                       color: '#0f172a',
-                      backgroundColor: '#ffffff'
+                      backgroundColor: '#ffffff',
+                      cursor: 'pointer'
                     }}
                   >
                     <option value="All">All</option>
@@ -477,26 +484,40 @@ const AdminDashboard = () => {
                 </div>
               </div>
 
-              {/* Leave Status Breakdown */}
+              {/* Leave Status Breakdown (Clean Proportional Bar Scaling) */}
               <div style={powerBiChartBoxStyle}>
                 <div style={chartHeaderStyle}>Leave Status Distribution</div>
-                <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-around', height: '80px', marginTop: '6px' }}>
-                  <div style={{ textAlign: 'center' }}>
-                    <div style={{ fontSize: '0.7rem', fontWeight: '700', color: '#107c41' }}>{filteredData.approvedLeaves}</div>
-                    <div style={{ width: '24px', height: `${Math.max(10, filteredData.approvedLeaves * 15)}px`, backgroundColor: '#107c41', margin: '4px auto 2px', borderRadius: '2px 2px 0 0' }}></div>
-                    <div style={{ fontSize: '0.65rem', color: '#64748b' }}>Appr</div>
-                  </div>
-                  <div style={{ textAlign: 'center' }}>
-                    <div style={{ fontSize: '0.7rem', fontWeight: '700', color: '#d83b01' }}>{filteredData.pendingLeaves}</div>
-                    <div style={{ width: '24px', height: `${Math.max(10, filteredData.pendingLeaves * 15)}px`, backgroundColor: '#d83b01', margin: '4px auto 2px', borderRadius: '2px 2px 0 0' }}></div>
-                    <div style={{ fontSize: '0.65rem', color: '#64748b' }}>Pend</div>
-                  </div>
-                  <div style={{ textAlign: 'center' }}>
-                    <div style={{ fontSize: '0.7rem', fontWeight: '700', color: '#64748b' }}>{filteredData.rejectedLeaves}</div>
-                    <div style={{ width: '24px', height: `${Math.max(10, filteredData.rejectedLeaves * 15)}px`, backgroundColor: '#64748b', margin: '4px auto 2px', borderRadius: '2px 2px 0 0' }}></div>
-                    <div style={{ fontSize: '0.65rem', color: '#64748b' }}>Rej</div>
-                  </div>
-                </div>
+                {(() => {
+                  const maxL = Math.max(filteredData.approvedLeaves, filteredData.pendingLeaves, filteredData.rejectedLeaves, 1);
+                  const apprH = Math.max(6, Math.round((filteredData.approvedLeaves / maxL) * 44));
+                  const pendH = Math.max(6, Math.round((filteredData.pendingLeaves / maxL) * 44));
+                  const rejH = Math.max(6, Math.round((filteredData.rejectedLeaves / maxL) * 44));
+
+                  return (
+                    <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-around', height: '70px', paddingBottom: '2px' }}>
+                      {/* Approved */}
+                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px' }}>
+                        <span style={{ fontSize: '0.68rem', fontWeight: '700', color: '#107c41' }}>{filteredData.approvedLeaves}</span>
+                        <div style={{ width: '22px', height: `${apprH}px`, backgroundColor: '#107c41', borderRadius: '2px 2px 0 0' }}></div>
+                        <span style={{ fontSize: '0.64rem', color: '#64748b' }}>Appr</span>
+                      </div>
+
+                      {/* Pending */}
+                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px' }}>
+                        <span style={{ fontSize: '0.68rem', fontWeight: '700', color: '#d83b01' }}>{filteredData.pendingLeaves}</span>
+                        <div style={{ width: '22px', height: `${pendH}px`, backgroundColor: '#d83b01', borderRadius: '2px 2px 0 0' }}></div>
+                        <span style={{ fontSize: '0.64rem', color: '#64748b' }}>Pend</span>
+                      </div>
+
+                      {/* Rejected */}
+                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px' }}>
+                        <span style={{ fontSize: '0.68rem', fontWeight: '700', color: '#64748b' }}>{filteredData.rejectedLeaves}</span>
+                        <div style={{ width: '22px', height: `${rejH}px`, backgroundColor: '#64748b', borderRadius: '2px 2px 0 0' }}></div>
+                        <span style={{ fontSize: '0.64rem', color: '#64748b' }}>Rej</span>
+                      </div>
+                    </div>
+                  );
+                })()}
               </div>
 
             </div>
@@ -519,16 +540,16 @@ const AdminDashboard = () => {
                       key={st}
                       onClick={() => setStatusFilter(isSelected ? 'ALL' : st)}
                       style={{
-                        padding: '10px 12px',
+                        padding: '9px 12px',
                         textAlign: 'center',
                         borderRadius: '2px',
                         border: '1px solid #cbd5e1',
                         backgroundColor: isSelected ? '#0078d4' : '#ffffff',
                         color: isSelected ? '#ffffff' : '#1e293b',
                         fontWeight: '700',
-                        fontSize: '0.88rem',
+                        fontSize: '0.84rem',
                         cursor: 'pointer',
-                        boxShadow: isSelected ? '0 2px 6px rgba(0,120,212,0.3)' : 'none',
+                        boxShadow: isSelected ? '0 2px 6px rgba(0,120,212,0.25)' : 'none',
                         transition: 'all 0.15s ease'
                       }}
                     >
@@ -542,15 +563,15 @@ const AdminDashboard = () => {
             {/* Slicer 2: Attendance_Date Range Slicer */}
             <div style={powerBiSlicerCardStyle}>
               <div style={slicerHeaderStyle}>Attendance_Date</div>
-              <div style={{ padding: '10px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                <div style={{ fontSize: '0.78rem', color: '#334155', fontWeight: '600', textAlign: 'center' }}>
-                  {startDate}  ⇌  {endDate}
+              <div style={{ padding: '12px 10px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                <div style={{ fontSize: '0.74rem', color: '#334155', fontWeight: '700', textAlign: 'center', fontFamily: 'monospace' }}>
+                  {startDate} ⇌ {endDate}
                 </div>
                 {/* Power BI slider line with circular handles */}
-                <div style={{ position: 'relative', margin: '10px 4px 6px' }}>
-                  <div style={{ height: '3px', backgroundColor: '#cbd5e1', width: '100%' }}></div>
-                  <div style={{ position: 'absolute', top: '-5px', left: '0', width: '12px', height: '12px', borderRadius: '50%', backgroundColor: '#ffffff', border: '2px solid #0078d4' }}></div>
-                  <div style={{ position: 'absolute', top: '-5px', right: '0', width: '12px', height: '12px', borderRadius: '50%', backgroundColor: '#ffffff', border: '2px solid #0078d4' }}></div>
+                <div style={{ position: 'relative', margin: '8px 6px 4px' }}>
+                  <div style={{ height: '3px', backgroundColor: '#cbd5e1', width: '100%', borderRadius: '2px' }}></div>
+                  <div style={{ position: 'absolute', top: '-5px', left: '0', width: '12px', height: '12px', borderRadius: '50%', backgroundColor: '#ffffff', border: '2px solid #0078d4', boxShadow: '0 1px 3px rgba(0,0,0,0.15)' }}></div>
+                  <div style={{ position: 'absolute', top: '-5px', right: '0', width: '12px', height: '12px', borderRadius: '50%', backgroundColor: '#ffffff', border: '2px solid #0078d4', boxShadow: '0 1px 3px rgba(0,0,0,0.15)' }}></div>
                 </div>
               </div>
             </div>
@@ -558,16 +579,16 @@ const AdminDashboard = () => {
             {/* Slicer 3: Department Checkbox Slicer */}
             <div style={powerBiSlicerCardStyle}>
               <div style={slicerHeaderStyle}>Department</div>
-              <div style={{ padding: '8px 10px', display: 'flex', flexDirection: 'column', gap: '6px', maxHeight: '150px', overflowY: 'auto' }}>
+              <div style={{ padding: '10px', display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '155px', overflowY: 'auto' }}>
                 {allDepartments.map((dept, i) => (
-                  <label key={i} style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.76rem', color: '#334155', cursor: 'pointer' }}>
+                  <label key={i} style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.74rem', color: '#334155', cursor: 'pointer', fontWeight: '500' }}>
                     <input
                       type="checkbox"
                       checked={selectedDepts.includes(dept)}
                       onChange={() => handleDeptCheckbox(dept)}
-                      style={{ cursor: 'pointer' }}
+                      style={{ cursor: 'pointer', accentColor: '#0078d4' }}
                     />
-                    <span>{dept}</span>
+                    <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{dept}</span>
                   </label>
                 ))}
               </div>
@@ -612,7 +633,8 @@ const powerBiKpiCardStyle = {
   display: 'flex',
   flexDirection: 'column',
   justifyContent: 'center',
-  minHeight: '82px'
+  minHeight: '80px',
+  overflow: 'hidden'
 };
 
 const kpiNumberStyle = {
@@ -634,7 +656,8 @@ const powerBiChartBoxStyle = {
   border: '1px solid #d0d7de',
   borderRadius: '4px',
   padding: '12px 14px',
-  boxShadow: '0 1px 3px rgba(0,0,0,0.04)'
+  boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
+  overflow: 'hidden'
 };
 
 const chartHeaderStyle = {
