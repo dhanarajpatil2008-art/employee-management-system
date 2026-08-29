@@ -1,37 +1,22 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
 import API from '../../services/api';
 import Navbar from '../../components/Navbar';
-import StatCard from '../../components/StatCard';
 import {
   Users,
   Building2,
   CheckCircle,
   Clock,
-  UserPlus,
-  CalendarCheck,
-  CalendarClock,
-  ArrowRight,
-  Activity,
-  CheckCircle2,
+  RotateCcw,
+  Calendar,
   Layers,
-  Briefcase,
+  Award,
   TrendingUp,
-  XCircle,
-  Filter,
-  RefreshCw,
-  Search,
-  ChevronRight,
-  PieChart,
-  BarChart3,
-  SlidersHorizontal,
-  Sparkles,
-  ShieldCheck
+  UserCheck,
+  Briefcase,
+  SlidersHorizontal
 } from 'lucide-react';
 
 const AdminDashboard = () => {
-  const navigate = useNavigate();
-
   // Raw API State
   const [stats, setStats] = useState({
     total_employees: 0,
@@ -46,11 +31,12 @@ const AdminDashboard = () => {
   const [todayAttendance, setTodayAttendance] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // 🎛️ PowerBI Slicers & Filters State
-  const [selectedDept, setSelectedDept] = useState('ALL');
-  const [selectedStatus, setSelectedStatus] = useState('ALL');
-  const [timeRange, setTimeRange] = useState('TODAY');
-  const [searchQuery, setSearchQuery] = useState('');
+  // 🎛️ Power BI Slicers State (Matching Reference)
+  const [statusFilter, setStatusFilter] = useState('ALL'); // 'ALL' | 'Present' | 'Absent' | 'Pending'
+  const [selectedDepts, setSelectedDepts] = useState([]);
+  const [dropdownDept, setDropdownDept] = useState('All');
+  const [startDate, setStartDate] = useState('2026-01-01');
+  const [endDate, setEndDate] = useState('2026-12-31');
 
   useEffect(() => {
     fetchDashboardData();
@@ -78,522 +64,603 @@ const AdminDashboard = () => {
     }
   };
 
-  // 🔄 Dynamic Filtered Slicing (PowerBI Engine)
-  const departmentsList = useMemo(() => {
+  // List of all unique departments
+  const allDepartments = useMemo(() => {
     const depts = new Set(['Information Technology', 'Human Resources', 'Finance', 'Management', 'Marketing']);
     employees.forEach(e => { if (e.department) depts.add(e.department); });
     return Array.from(depts);
   }, [employees]);
 
-  // Compute sliced metrics based on selected filters
-  const slicedData = useMemo(() => {
-    // 1. Filtered Employees
+  // Reset Filters handler
+  const handleResetFilters = () => {
+    setStatusFilter('ALL');
+    setSelectedDepts([]);
+    setDropdownDept('All');
+    setStartDate('2026-01-01');
+    setEndDate('2026-12-31');
+  };
+
+  // Toggle department checkbox
+  const handleDeptCheckbox = (dept) => {
+    setSelectedDepts(prev =>
+      prev.includes(dept) ? prev.filter(d => d !== dept) : [...prev, dept]
+    );
+  };
+
+  // Sliced Dynamic Calculations
+  const filteredData = useMemo(() => {
     let emps = employees;
-    if (selectedDept !== 'ALL') {
-      emps = emps.filter(e => e.department === selectedDept);
+
+    // Filter by dropdown or checkboxes
+    const activeDepts = selectedDepts.length > 0
+      ? selectedDepts
+      : (dropdownDept !== 'All' ? [dropdownDept] : []);
+
+    if (activeDepts.length > 0) {
+      emps = emps.filter(e => activeDepts.includes(e.department));
     }
 
     const totalEmps = emps.length;
-
-    // 2. Filtered Today's Attendance
     const empIds = new Set(emps.map(e => e.id));
+
+    // Attendance calculation
     const relevantAtt = todayAttendance.filter(a => empIds.has(a.user_id));
-    const presentCount = relevantAtt.filter(a => a.status === 'Present').length;
-    const absentCount = Math.max(0, totalEmps - presentCount);
-    const attPercent = totalEmps > 0 ? Math.round((presentCount / totalEmps) * 100) : 0;
+    let presentCount = relevantAtt.filter(a => a.status === 'Present').length;
+    let absentCount = Math.max(0, totalEmps - presentCount);
 
-    // 3. Filtered Leaves
-    let filteredLeaves = leaves;
-    if (selectedDept !== 'ALL') {
-      filteredLeaves = filteredLeaves.filter(l => {
-        const emp = employees.find(e => e.id === l.user_id);
-        return emp ? emp.department === selectedDept : false;
-      });
+    if (statusFilter === 'Present') {
+      absentCount = 0;
+    } else if (statusFilter === 'Absent') {
+      presentCount = 0;
     }
 
-    if (selectedStatus !== 'ALL') {
-      filteredLeaves = filteredLeaves.filter(l => l.status === selectedStatus);
+    const attRate = totalEmps > 0 ? Math.round((presentCount / totalEmps) * 100) : 0;
+
+    // Leaves calculation
+    let relevantLeaves = leaves.filter(l => {
+      const emp = employees.find(e => e.id === l.user_id);
+      return emp && (activeDepts.length === 0 || activeDepts.includes(emp.department));
+    });
+
+    if (statusFilter === 'Pending') {
+      relevantLeaves = relevantLeaves.filter(l => l.status === 'Pending');
     }
 
-    if (searchQuery.trim() !== '') {
-      const q = searchQuery.toLowerCase();
-      filteredLeaves = filteredLeaves.filter(l =>
-        l.employee_name?.toLowerCase().includes(q) ||
-        l.reason?.toLowerCase().includes(q)
-      );
-    }
+    const pendingLeaves = relevantLeaves.filter(l => l.status === 'Pending').length;
+    const approvedLeaves = relevantLeaves.filter(l => l.status === 'Approved').length;
+    const rejectedLeaves = relevantLeaves.filter(l => l.status === 'Rejected').length;
 
-    const pendingLeavesCount = filteredLeaves.filter(l => l.status === 'Pending').length;
-
-    // 4. Department Distribution for chart
-    const deptDist = departmentsList.map(dept => {
-      const count = employees.filter(e => e.department === dept).length;
+    // Department Distribution
+    const deptDist = allDepartments.map(dept => {
+      const count = emps.filter(e => e.department === dept).length;
       return { department: dept, count };
     }).filter(d => d.count > 0);
 
     return {
-      totalEmployees: totalEmps,
+      totalEmps,
       presentCount,
       absentCount,
-      attendancePercent: attPercent,
-      pendingLeavesCount,
-      filteredLeaves,
-      deptDist
+      attRate,
+      pendingLeaves,
+      approvedLeaves,
+      rejectedLeaves,
+      deptDist,
+      totalDepts: activeDepts.length > 0 ? activeDepts.length : allDepartments.length
     };
-  }, [employees, todayAttendance, leaves, selectedDept, selectedStatus, searchQuery, departmentsList]);
+  }, [employees, todayAttendance, leaves, statusFilter, selectedDepts, dropdownDept, allDepartments]);
 
-  const handleResetFilters = () => {
-    setSelectedDept('ALL');
-    setSelectedStatus('ALL');
-    setTimeRange('TODAY');
-    setSearchQuery('');
-  };
+  // Donut chart colors
+  const donutColors = ['#0078d4', '#744da9', '#00b7c3', '#e3008c', '#ffaa44', '#107c41'];
+
+  // Monthly trend simulated points
+  const monthlyPoints = [
+    { month: 'Jan', val: 78 },
+    { month: 'Feb', val: 88 },
+    { month: 'Mar', val: 95 },
+    { month: 'Apr', val: 70 },
+    { month: 'May', val: 84 },
+    { month: 'Jun', val: 90 },
+    { month: 'Jul', val: 82 },
+    { month: 'Aug', val: 68 },
+    { month: 'Sep', val: 92 },
+    { month: 'Oct', val: 76 },
+    { month: 'Nov', val: 89 },
+    { month: 'Dec', val: Math.max(50, filteredData.attRate || 85) }
+  ];
 
   return (
-    <div className="main-wrapper">
+    <div className="main-wrapper" style={{ backgroundColor: '#edf1f7' }}>
       <Navbar
-        title="Executive HR Intelligence & Analytics"
-        subtitle="PowerBI enterprise workforce intelligence, real-time slicers, and departmental telemetry"
+        title="Admin Control Center"
+        subtitle="Power BI Workforce Analytics & Executive Telemetry"
       />
 
-      <div className="content-container">
+      <div style={{ padding: '16px 20px', maxWidth: '1440px', margin: '0 auto' }}>
 
-        {/* 🎛️ 1. PowerBI Slicer Bar / Filter Pane */}
+        {/* 🏷️ Power BI Top Header Bar */}
         <div style={{
-          backgroundColor: '#ffffff',
-          borderRadius: '16px',
-          padding: '18px 24px',
-          marginBottom: '24px',
-          border: '1px solid #e2e8f0',
-          boxShadow: '0 4px 20px -2px rgba(15, 23, 42, 0.04)',
+          backgroundColor: '#061138',
+          color: '#ffffff',
+          borderRadius: '4px',
+          padding: '10px 20px',
           display: 'flex',
-          flexDirection: 'column',
-          gap: '16px'
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          marginBottom: '16px',
+          boxShadow: '0 2px 8px rgba(0,0,0,0.15)'
         }}>
-          {/* Slicer Header & Active Badges */}
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <div style={{
-                width: '36px',
-                height: '36px',
-                borderRadius: '10px',
-                backgroundColor: '#4f46e5',
-                color: '#ffffff',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                boxShadow: '0 4px 12px rgba(79, 70, 229, 0.25)'
-              }}>
-                <SlidersHorizontal size={18} />
-              </div>
-              <div>
-                <h3 style={{ fontSize: '1rem', fontWeight: '800', color: '#0f172a', margin: 0 }}>
-                  PowerBI Interactive Slicers & Department Filters
-                </h3>
-                <p style={{ fontSize: '0.76rem', color: '#64748b', margin: 0 }}>
-                  Filter dashboard metrics, presence ratio, and leave queues in real-time
-                </p>
-              </div>
-            </div>
+          {/* Reset Filters Button */}
+          <button
+            onClick={handleResetFilters}
+            style={{
+              backgroundColor: 'transparent',
+              border: '1px solid rgba(255,255,255,0.7)',
+              color: '#ffffff',
+              padding: '6px 16px',
+              borderRadius: '2px',
+              fontSize: '0.85rem',
+              fontWeight: '700',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              transition: 'all 0.2s ease'
+            }}
+            onMouseOver={(e) => (e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.15)')}
+            onMouseOut={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
+          >
+            <RotateCcw size={13} />
+            <span>Reset Filters</span>
+          </button>
 
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-              {(selectedDept !== 'ALL' || selectedStatus !== 'ALL' || searchQuery !== '') && (
-                <button
-                  onClick={handleResetFilters}
-                  className="btn btn-secondary btn-sm"
-                  style={{ fontSize: '0.78rem', gap: '4px', padding: '6px 12px' }}
-                >
-                  <RefreshCw size={12} /> Reset Slicers
-                </button>
-              )}
-              <span className="badge badge-approved" style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-                <Activity size={12} /> Live Telemetry
-              </span>
-            </div>
-          </div>
-
-          {/* Slicer Pills Row */}
+          {/* Title */}
           <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px',
-            flexWrap: 'wrap',
-            paddingTop: '8px',
-            borderTop: '1px solid #f1f5f9'
+            fontSize: '1.25rem',
+            fontWeight: '900',
+            letterSpacing: '1px',
+            fontFamily: "'Segoe UI', Roboto, sans-serif",
+            textAlign: 'center',
+            textTransform: 'uppercase'
           }}>
-            <span style={{ fontSize: '0.8rem', fontWeight: '700', color: '#475569', marginRight: '6px', display: 'flex', alignItems: 'center', gap: '4px' }}>
-              <Building2 size={14} color="#6366f1" /> Department Slicer:
-            </span>
-
-            <button
-              onClick={() => setSelectedDept('ALL')}
-              style={{
-                padding: '6px 14px',
-                borderRadius: '20px',
-                fontSize: '0.8rem',
-                fontWeight: '700',
-                border: 'none',
-                cursor: 'pointer',
-                transition: 'all 0.2s ease',
-                backgroundColor: selectedDept === 'ALL' ? '#0f172a' : '#f1f5f9',
-                color: selectedDept === 'ALL' ? '#ffffff' : '#475569',
-                boxShadow: selectedDept === 'ALL' ? '0 4px 10px rgba(15, 23, 42, 0.2)' : 'none'
-              }}
-            >
-              All Enterprise ({employees.length})
-            </button>
-
-            {departmentsList.map((dept, idx) => {
-              const count = employees.filter(e => e.department === dept).length;
-              const isSelected = selectedDept === dept;
-              return (
-                <button
-                  key={idx}
-                  onClick={() => setSelectedDept(isSelected ? 'ALL' : dept)}
-                  style={{
-                    padding: '6px 14px',
-                    borderRadius: '20px',
-                    fontSize: '0.8rem',
-                    fontWeight: '700',
-                    border: 'none',
-                    cursor: 'pointer',
-                    transition: 'all 0.2s ease',
-                    backgroundColor: isSelected ? '#4f46e5' : '#f1f5f9',
-                    color: isSelected ? '#ffffff' : '#475569',
-                    boxShadow: isSelected ? '0 4px 12px rgba(79, 70, 229, 0.3)' : 'none'
-                  }}
-                >
-                  {dept} ({count})
-                </button>
-              );
-            })}
+            EMPLOYEE ANALYTICS DASHBOARD |
           </div>
 
-          {/* Secondary Slicers: Status & Search */}
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            gap: '12px',
-            flexWrap: 'wrap'
-          }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-              <span style={{ fontSize: '0.8rem', fontWeight: '700', color: '#475569', marginRight: '4px', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                <Filter size={13} color="#6366f1" /> Status Slicer:
-              </span>
-              {['ALL', 'Pending', 'Approved', 'Rejected'].map((st) => (
-                <button
-                  key={st}
-                  onClick={() => setSelectedStatus(st)}
-                  style={{
-                    padding: '4px 12px',
-                    borderRadius: '6px',
-                    fontSize: '0.78rem',
-                    fontWeight: '600',
-                    border: '1px solid',
-                    borderColor: selectedStatus === st ? '#4f46e5' : '#e2e8f0',
-                    backgroundColor: selectedStatus === st ? '#eef2ff' : '#ffffff',
-                    color: selectedStatus === st ? '#4f46e5' : '#64748b',
-                    cursor: 'pointer'
-                  }}
-                >
-                  {st === 'ALL' ? 'All Records' : st}
-                </button>
-              ))}
-            </div>
-
-            <div className="search-box" style={{ maxWidth: '280px', width: '100%', height: '36px' }}>
-              <Search size={14} color="#94a3b8" />
-              <input
-                type="text"
-                placeholder="Search filtered records..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                style={{ fontSize: '0.82rem' }}
-              />
-            </div>
-          </div>
+          <div style={{ width: '110px' }}></div>
         </div>
 
-        {/* 📊 2. Dynamic Executive KPI Metric Ribbon */}
-        <div className="stats-grid" style={{ marginBottom: '24px' }}>
-          <StatCard
-            title={selectedDept === 'ALL' ? 'Total Organization Workforce' : `${selectedDept} Workforce`}
-            value={slicedData.totalEmployees}
-            description={selectedDept === 'ALL' ? 'Across all operational divisions' : `Assigned to ${selectedDept}`}
-            icon={Users}
-            color="indigo"
-          />
-          <StatCard
-            title="Operational Departments"
-            value={selectedDept === 'ALL' ? departmentsList.length : 1}
-            description={selectedDept === 'ALL' ? 'Active business departments' : 'Active Sliced View'}
-            icon={Building2}
-            color="emerald"
-          />
-          <StatCard
-            title="Today's Presence Ratio"
-            value={`${slicedData.attendancePercent}%`}
-            description={`${slicedData.presentCount} on-duty staff today`}
-            icon={CheckCircle}
-            color="indigo"
-          />
-          <StatCard
-            title="Filtered Leave Queue"
-            value={slicedData.pendingLeavesCount}
-            description="Awaiting HR approval"
-            icon={Clock}
-            color="amber"
-          />
-        </div>
+        {/* 📊 Main Power BI Dashboard 3-Column Grid */}
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: '170px 1fr 220px',
+          gap: '14px',
+          alignItems: 'start'
+        }}>
 
-        {/* 📈 3. PowerBI Analytics Grid */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '24px', marginBottom: '24px' }}>
-          
-          {/* Card A: Workforce Presence & Availability Breakdown */}
-          <div className="card" style={{ margin: 0 }}>
-            <div className="card-header">
-              <div>
-                <h2>Workforce Availability Telemetry</h2>
-                <p style={{ fontSize: '0.78rem', color: '#64748b', margin: 0 }}>
-                  {selectedDept === 'ALL' ? 'Enterprise Presence & Duty Slicer' : `${selectedDept} Presence Telemetry`}
-                </p>
+          {/* ======================================================== */}
+          {/* 1️⃣ LEFT COLUMN: 5 KPI Metric Cards Stack                  */}
+          {/* ======================================================== */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            
+            {/* KPI 1: Total Employees */}
+            <div style={powerBiKpiCardStyle}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.76rem', color: '#475569', fontWeight: '700' }}>
+                <Users size={14} color="#0078d4" />
+                <span>Total Employees</span>
               </div>
-              <span className="badge badge-approved" style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                <TrendingUp size={12} /> {slicedData.attendancePercent}% Rate
-              </span>
+              <div style={kpiNumberStyle}>{filteredData.totalEmps}</div>
+              <div style={kpiSubtextStyle}>Total Staff</div>
             </div>
-            <div style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
-              {/* Main Gauge Progress Bar */}
-              <div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.88rem', marginBottom: '8px', fontWeight: '700' }}>
-                  <span style={{ color: '#0f172a', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    <CheckCircle2 size={16} color="#10b981" /> Presence Compliance Rate
-                  </span>
-                  <span style={{ color: '#10b981', fontSize: '1.05rem', fontWeight: '800' }}>
-                    {slicedData.attendancePercent}%
-                  </span>
-                </div>
-                <div style={{ width: '100%', height: '10px', backgroundColor: '#f1f5f9', borderRadius: '5px', overflow: 'hidden' }}>
-                  <div
-                    style={{
-                      width: `${slicedData.attendancePercent}%`,
-                      height: '100%',
-                      background: 'linear-gradient(90deg, #10b981, #059669)',
-                      borderRadius: '5px',
-                      transition: 'width 0.5s ease'
-                    }}
-                  />
-                </div>
+
+            {/* KPI 2: Total Present */}
+            <div style={powerBiKpiCardStyle}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.76rem', color: '#475569', fontWeight: '700' }}>
+                <UserCheck size={14} color="#107c41" />
+                <span>Total Present</span>
               </div>
-
-              {/* 3-Segment Metric Tiles (Present / Absent / Leave Queue) */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px' }}>
-                <div style={{ backgroundColor: '#f0fdf4', padding: '16px 12px', borderRadius: '12px', border: '1px solid #dcfce7', textAlign: 'center' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px', color: '#16a34a', fontSize: '0.75rem', fontWeight: '700', textTransform: 'uppercase' }}>
-                    <CheckCircle2 size={14} /> Present
-                  </div>
-                  <div style={{ fontSize: '1.5rem', fontWeight: '800', color: '#15803d', marginTop: '4px' }}>
-                    {slicedData.presentCount}
-                  </div>
-                  <div style={{ fontSize: '0.72rem', color: '#65a30d', fontWeight: '600' }}>On-Duty Staff</div>
-                </div>
-
-                <div style={{ backgroundColor: '#fef2f2', padding: '16px 12px', borderRadius: '12px', border: '1px solid #fee2e2', textAlign: 'center' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px', color: '#dc2626', fontSize: '0.75rem', fontWeight: '700', textTransform: 'uppercase' }}>
-                    <XCircle size={14} /> Absent
-                  </div>
-                  <div style={{ fontSize: '1.5rem', fontWeight: '800', color: '#b91c1c', marginTop: '4px' }}>
-                    {slicedData.absentCount}
-                  </div>
-                  <div style={{ fontSize: '0.72rem', color: '#ef4444', fontWeight: '600' }}>Unrecorded</div>
-                </div>
-
-                <div style={{ backgroundColor: '#fefce8', padding: '16px 12px', borderRadius: '12px', border: '1px solid #fef08a', textAlign: 'center' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px', color: '#ca8a04', fontSize: '0.75rem', fontWeight: '700', textTransform: 'uppercase' }}>
-                    <Clock size={14} /> Pending
-                  </div>
-                  <div style={{ fontSize: '1.5rem', fontWeight: '800', color: '#a16207', marginTop: '4px' }}>
-                    {slicedData.pendingLeavesCount}
-                  </div>
-                  <div style={{ fontSize: '0.72rem', color: '#ca8a04', fontWeight: '600' }}>Leave Queue</div>
-                </div>
-              </div>
-
-              {/* Sliced Department Info Tag */}
-              <div style={{ backgroundColor: '#f8fafc', padding: '12px 14px', borderRadius: '10px', border: '1px solid #f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <span style={{ fontSize: '0.82rem', color: '#475569', fontWeight: '600' }}>
-                  Selected Slicer Focus: <strong>{selectedDept === 'ALL' ? 'Whole Organization' : selectedDept}</strong>
-                </span>
-                <span style={{ fontSize: '0.78rem', color: '#4f46e5', fontWeight: '700', backgroundColor: '#e0e7ff', padding: '3px 10px', borderRadius: '9999px' }}>
-                  {slicedData.totalEmployees} Active Staff
-                </span>
-              </div>
+              <div style={kpiNumberStyle}>{filteredData.presentCount}</div>
+              <div style={kpiSubtextStyle}>On-Duty Today</div>
             </div>
+
+            {/* KPI 3: Attendance Rate */}
+            <div style={powerBiKpiCardStyle}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.76rem', color: '#475569', fontWeight: '700' }}>
+                <TrendingUp size={14} color="#0078d4" />
+                <span>Attendance Rate</span>
+              </div>
+              <div style={kpiNumberStyle}>{filteredData.attRate}%</div>
+              <div style={kpiSubtextStyle}>Presence Ratio</div>
+            </div>
+
+            {/* KPI 4: Pending Leaves */}
+            <div style={powerBiKpiCardStyle}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.76rem', color: '#475569', fontWeight: '700' }}>
+                <Clock size={14} color="#d83b01" />
+                <span>Pending Leaves</span>
+              </div>
+              <div style={kpiNumberStyle}>{filteredData.pendingLeaves}</div>
+              <div style={kpiSubtextStyle}>Approval Queue</div>
+            </div>
+
+            {/* KPI 5: Total Departments */}
+            <div style={powerBiKpiCardStyle}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.76rem', color: '#475569', fontWeight: '700' }}>
+                <Building2 size={14} color="#744da9" />
+                <span>Total Departments</span>
+              </div>
+              <div style={kpiNumberStyle}>{filteredData.totalDepts}</div>
+              <div style={kpiSubtextStyle}>Operational Units</div>
+            </div>
+
           </div>
 
-          {/* Card B: Departmental Workforce Strength & Interactive Slicer Bars */}
-          <div className="card" style={{ margin: 0 }}>
-            <div className="card-header">
-              <div>
-                <h2>Department Strength & Allocation</h2>
-                <p style={{ fontSize: '0.78rem', color: '#64748b', margin: 0 }}>
-                  Click any department bar below to instantly slice dashboard data
-                </p>
+          {/* ======================================================== */}
+          {/* 2️⃣ CENTER COLUMN: Power BI Visual Charts Grid            */}
+          {/* ======================================================== */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+
+            {/* Row A: Line Chart & Donut Chart */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '12px' }}>
+              
+              {/* Monthly Attendance Trend (Line Chart) */}
+              <div style={powerBiChartBoxStyle}>
+                <div style={chartHeaderStyle}>Monthly Attendance Trend</div>
+                <div style={{ height: '140px', width: '100%', position: 'relative', marginTop: '6px' }}>
+                  <svg width="100%" height="100%" viewBox="0 0 340 120" preserveAspectRatio="none">
+                    {/* Grid lines */}
+                    <line x1="0" y1="20" x2="340" y2="20" stroke="#e2e8f0" strokeDasharray="3 3" />
+                    <line x1="0" y1="60" x2="340" y2="60" stroke="#e2e8f0" strokeDasharray="3 3" />
+                    <line x1="0" y1="100" x2="340" y2="100" stroke="#e2e8f0" strokeDasharray="3 3" />
+                    
+                    {/* Trend Line Path */}
+                    <path
+                      d="M 15,95 L 42,75 L 70,55 L 98,25 L 126,85 L 154,60 L 182,50 L 210,70 L 238,90 L 266,45 L 294,75 L 325,40"
+                      fill="none"
+                      stroke="#2b579a"
+                      strokeWidth="2.5"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                    
+                    {/* Dots */}
+                    {[
+                      [15,95], [42,75], [70,55], [98,25], [126,85], [154,60],
+                      [182,50], [210,70], [238,90], [266,45], [294,75], [325,40]
+                    ].map(([cx, cy], i) => (
+                      <circle key={i} cx={cx} cy={cy} r="3" fill="#2b579a" />
+                    ))}
+                  </svg>
+                </div>
+                {/* X-axis months */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.62rem', color: '#64748b', marginTop: '2px' }}>
+                  {monthlyPoints.map((p, i) => (
+                    <span key={i}>{p.month}</span>
+                  ))}
+                </div>
               </div>
-              <button
-                onClick={() => navigate('/admin/departments')}
-                className="btn btn-secondary btn-sm"
-                style={{ fontSize: '0.78rem', padding: '4px 10px' }}
-              >
-                View Full Roster
-              </button>
+
+              {/* Department Headcount Distribution (Donut Chart) */}
+              <div style={powerBiChartBoxStyle}>
+                <div style={chartHeaderStyle}>Department Distribution</div>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-around', height: '140px' }}>
+                  {/* SVG Donut Ring */}
+                  <div style={{ width: '100px', height: '100px', position: 'relative' }}>
+                    <svg viewBox="0 0 36 36" style={{ width: '100%', height: '100%', transform: 'rotate(-90deg)' }}>
+                      {/* Background circle */}
+                      <circle cx="18" cy="18" r="14" fill="none" stroke="#f1f5f9" strokeWidth="6" />
+                      {/* Segment 1 */}
+                      <circle cx="18" cy="18" r="14" fill="none" stroke="#0078d4" strokeWidth="6" strokeDasharray="35 65" strokeDashoffset="0" />
+                      {/* Segment 2 */}
+                      <circle cx="18" cy="18" r="14" fill="none" stroke="#744da9" strokeWidth="6" strokeDasharray="34 66" strokeDashoffset="-35" />
+                      {/* Segment 3 */}
+                      <circle cx="18" cy="18" r="14" fill="none" stroke="#00b7c3" strokeWidth="6" strokeDasharray="31 69" strokeDashoffset="-69" />
+                    </svg>
+                  </div>
+
+                  {/* Legend */}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', fontSize: '0.72rem', color: '#334155' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#0078d4' }}></span>
+                      <span>IT (35%)</span>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#744da9' }}></span>
+                      <span>HR (34%)</span>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#00b7c3' }}></span>
+                      <span>Finance (31%)</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
             </div>
-            <div style={{ padding: '24px' }}>
-              {slicedData.deptDist && slicedData.deptDist.length > 0 ? (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-                  {slicedData.deptDist.map((dept, idx) => {
-                    const total = employees.length || 1;
-                    const pct = Math.round((dept.count / total) * 100);
-                    const isSelected = selectedDept === dept.department;
+
+            {/* Row B: Pie Chart & Vertical Bar Chart */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.3fr', gap: '12px' }}>
+              
+              {/* Attendance Status Pie Chart */}
+              <div style={powerBiChartBoxStyle}>
+                <div style={chartHeaderStyle}>Attendance Status Ratio</div>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-around', height: '140px' }}>
+                  {/* SVG Pie */}
+                  <div style={{ width: '90px', height: '90px', borderRadius: '50%', background: 'conic-gradient(#0078d4 0% 65%, #d83b01 65% 85%, #ffb900 85% 100%)', boxShadow: '0 2px 6px rgba(0,0,0,0.1)' }}></div>
+
+                  {/* Legend */}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', fontSize: '0.72rem', color: '#334155' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <span style={{ width: '8px', height: '8px', borderRadius: '2px', backgroundColor: '#0078d4' }}></span>
+                      <span>Present ({filteredData.presentCount})</span>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <span style={{ width: '8px', height: '8px', borderRadius: '2px', backgroundColor: '#d83b01' }}></span>
+                      <span>Absent ({filteredData.absentCount})</span>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <span style={{ width: '8px', height: '8px', borderRadius: '2px', backgroundColor: '#ffb900' }}></span>
+                      <span>Leaves ({filteredData.pendingLeaves})</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Staff Count by Department (Vertical Bar Chart) */}
+              <div style={powerBiChartBoxStyle}>
+                <div style={chartHeaderStyle}>Staff Headcount by Department</div>
+                <div style={{ height: '130px', display: 'flex', alignItems: 'flex-end', justifyContent: 'space-around', paddingTop: '10px' }}>
+                  {filteredData.deptDist.map((d, i) => {
+                    const max = Math.max(...filteredData.deptDist.map(x => x.count), 1);
+                    const h = Math.max(15, (d.count / max) * 90);
                     return (
-                      <div
-                        key={idx}
-                        onClick={() => setSelectedDept(isSelected ? 'ALL' : dept.department)}
-                        style={{
-                          cursor: 'pointer',
-                          padding: '8px 10px',
-                          borderRadius: '8px',
-                          backgroundColor: isSelected ? '#eef2ff' : 'transparent',
-                          border: isSelected ? '1px solid #6366f1' : '1px solid transparent',
-                          transition: 'all 0.2s ease'
-                        }}
-                        title={`Click to filter by ${dept.department}`}
-                      >
-                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.86rem', marginBottom: '6px', fontWeight: '600' }}>
-                          <span style={{ color: isSelected ? '#4f46e5' : '#0f172a', fontWeight: isSelected ? '800' : '600' }}>
-                            {dept.department} {isSelected && '✓ (Active Slicer)'}
-                          </span>
-                          <span style={{ color: '#4f46e5', fontWeight: '700' }}>
-                            {dept.count} Staff ({pct}%)
-                          </span>
-                        </div>
-                        <div style={{ width: '100%', height: '8px', backgroundColor: '#f1f5f9', borderRadius: '4px', overflow: 'hidden' }}>
-                          <div
-                            style={{
-                              width: `${pct}%`,
-                              height: '100%',
-                              background: isSelected
-                                ? 'linear-gradient(90deg, #4f46e5, #6366f1)'
-                                : idx % 2 === 0
-                                ? 'linear-gradient(90deg, #4f46e5, #818cf8)'
-                                : 'linear-gradient(90deg, #059669, #34d399)',
-                              borderRadius: '4px'
-                            }}
-                          />
-                        </div>
+                      <div key={i} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', width: '38px' }}>
+                        <span style={{ fontSize: '0.7rem', fontWeight: '700', color: '#4f46e5' }}>{d.count}</span>
+                        <div style={{
+                          width: '26px',
+                          height: `${h}px`,
+                          backgroundColor: '#5b6cb8',
+                          borderRadius: '2px 2px 0 0',
+                          transition: 'height 0.3s ease'
+                        }}></div>
+                        <span style={{ fontSize: '0.62rem', color: '#64748b', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '40px' }}>
+                          {d.department.split(' ')[0]}
+                        </span>
                       </div>
                     );
                   })}
                 </div>
-              ) : (
-                <p style={{ color: '#94a3b8', textAlign: 'center', padding: '20px' }}>No department data available.</p>
-              )}
+              </div>
+
             </div>
+
+            {/* Row C: Horizontal Bars & Leave Status Bar */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 0.8fr 1fr', gap: '12px' }}>
+              
+              {/* Workforce Ratio by Unit (Horizontal Bars) */}
+              <div style={powerBiChartBoxStyle}>
+                <div style={chartHeaderStyle}>Workforce by Unit</div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginTop: '6px' }}>
+                  {filteredData.deptDist.slice(0, 3).map((d, i) => (
+                    <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.72rem' }}>
+                      <span style={{ width: '60px', color: '#475569', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{d.department}</span>
+                      <div style={{ flex: 1, height: '12px', backgroundColor: '#f1f5f9', borderRadius: '2px', overflow: 'hidden' }}>
+                        <div style={{ width: `${Math.min(100, d.count * 20)}%`, height: '100%', backgroundColor: '#2b579a' }}></div>
+                      </div>
+                      <span style={{ fontWeight: '700', color: '#0f172a', width: '20px' }}>{d.count}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Department Dropdown Slicer Box */}
+              <div style={powerBiChartBoxStyle}>
+                <div style={chartHeaderStyle}>Department_Type</div>
+                <div style={{ marginTop: '10px' }}>
+                  <select
+                    value={dropdownDept}
+                    onChange={(e) => setDropdownDept(e.target.value)}
+                    style={{
+                      width: '100%',
+                      padding: '8px 10px',
+                      borderRadius: '4px',
+                      border: '1px solid #cbd5e1',
+                      fontSize: '0.82rem',
+                      fontWeight: '600',
+                      color: '#0f172a',
+                      backgroundColor: '#ffffff'
+                    }}
+                  >
+                    <option value="All">All</option>
+                    {allDepartments.map((dept, i) => (
+                      <option key={i} value={dept}>{dept}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              {/* Leave Status Breakdown */}
+              <div style={powerBiChartBoxStyle}>
+                <div style={chartHeaderStyle}>Leave Status Distribution</div>
+                <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-around', height: '80px', marginTop: '6px' }}>
+                  <div style={{ textAlign: 'center' }}>
+                    <div style={{ fontSize: '0.7rem', fontWeight: '700', color: '#107c41' }}>{filteredData.approvedLeaves}</div>
+                    <div style={{ width: '24px', height: `${Math.max(10, filteredData.approvedLeaves * 15)}px`, backgroundColor: '#107c41', margin: '4px auto 2px', borderRadius: '2px 2px 0 0' }}></div>
+                    <div style={{ fontSize: '0.65rem', color: '#64748b' }}>Appr</div>
+                  </div>
+                  <div style={{ textAlign: 'center' }}>
+                    <div style={{ fontSize: '0.7rem', fontWeight: '700', color: '#d83b01' }}>{filteredData.pendingLeaves}</div>
+                    <div style={{ width: '24px', height: `${Math.max(10, filteredData.pendingLeaves * 15)}px`, backgroundColor: '#d83b01', margin: '4px auto 2px', borderRadius: '2px 2px 0 0' }}></div>
+                    <div style={{ fontSize: '0.65rem', color: '#64748b' }}>Pend</div>
+                  </div>
+                  <div style={{ textAlign: 'center' }}>
+                    <div style={{ fontSize: '0.7rem', fontWeight: '700', color: '#64748b' }}>{filteredData.rejectedLeaves}</div>
+                    <div style={{ width: '24px', height: `${Math.max(10, filteredData.rejectedLeaves * 15)}px`, backgroundColor: '#64748b', margin: '4px auto 2px', borderRadius: '2px 2px 0 0' }}></div>
+                    <div style={{ fontSize: '0.65rem', color: '#64748b' }}>Rej</div>
+                  </div>
+                </div>
+              </div>
+
+            </div>
+
+          </div>
+
+          {/* ======================================================== */}
+          {/* 3️⃣ RIGHT COLUMN: Power BI Filter Slicers Pane             */}
+          {/* ======================================================== */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            
+            {/* Slicer 1: Attendance_Status Slicer */}
+            <div style={powerBiSlicerCardStyle}>
+              <div style={slicerHeaderStyle}>Attendance_Status</div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', padding: '10px' }}>
+                {['Present', 'Absent', 'Pending'].map((st) => {
+                  const isSelected = statusFilter === st;
+                  return (
+                    <button
+                      key={st}
+                      onClick={() => setStatusFilter(isSelected ? 'ALL' : st)}
+                      style={{
+                        padding: '10px 12px',
+                        textAlign: 'center',
+                        borderRadius: '2px',
+                        border: '1px solid #cbd5e1',
+                        backgroundColor: isSelected ? '#0078d4' : '#ffffff',
+                        color: isSelected ? '#ffffff' : '#1e293b',
+                        fontWeight: '700',
+                        fontSize: '0.88rem',
+                        cursor: 'pointer',
+                        boxShadow: isSelected ? '0 2px 6px rgba(0,120,212,0.3)' : 'none',
+                        transition: 'all 0.15s ease'
+                      }}
+                    >
+                      {st}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Slicer 2: Attendance_Date Range Slicer */}
+            <div style={powerBiSlicerCardStyle}>
+              <div style={slicerHeaderStyle}>Attendance_Date</div>
+              <div style={{ padding: '10px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                <div style={{ fontSize: '0.78rem', color: '#334155', fontWeight: '600', textAlign: 'center' }}>
+                  {startDate}  ⇌  {endDate}
+                </div>
+                {/* Power BI slider line with circular handles */}
+                <div style={{ position: 'relative', margin: '10px 4px 6px' }}>
+                  <div style={{ height: '3px', backgroundColor: '#cbd5e1', width: '100%' }}></div>
+                  <div style={{ position: 'absolute', top: '-5px', left: '0', width: '12px', height: '12px', borderRadius: '50%', backgroundColor: '#ffffff', border: '2px solid #0078d4' }}></div>
+                  <div style={{ position: 'absolute', top: '-5px', right: '0', width: '12px', height: '12px', borderRadius: '50%', backgroundColor: '#ffffff', border: '2px solid #0078d4' }}></div>
+                </div>
+              </div>
+            </div>
+
+            {/* Slicer 3: Department Checkbox Slicer */}
+            <div style={powerBiSlicerCardStyle}>
+              <div style={slicerHeaderStyle}>Department</div>
+              <div style={{ padding: '8px 10px', display: 'flex', flexDirection: 'column', gap: '6px', maxHeight: '150px', overflowY: 'auto' }}>
+                {allDepartments.map((dept, i) => (
+                  <label key={i} style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.76rem', color: '#334155', cursor: 'pointer' }}>
+                    <input
+                      type="checkbox"
+                      checked={selectedDepts.includes(dept)}
+                      onChange={() => handleDeptCheckbox(dept)}
+                      style={{ cursor: 'pointer' }}
+                    />
+                    <span>{dept}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+
           </div>
 
         </div>
 
-        {/* 📋 4. Sliced Leave Requests Queue & Recent Activity */}
-        <div className="card">
-          <div className="card-header">
-            <div>
-              <h2>Filtered Leave Requests Queue & Telemetry</h2>
-              <p style={{ fontSize: '0.78rem', color: '#64748b', margin: 0 }}>
-                Showing {slicedData.filteredLeaves.length} record(s) matching selected slicers ({selectedDept === 'ALL' ? 'All Departments' : selectedDept}, Status: {selectedStatus})
-              </p>
-            </div>
-            <button
-              onClick={() => navigate('/admin/leaves')}
-              className="btn btn-secondary btn-sm"
-              style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
-            >
-              <span>Manage All Approvals</span>
-              <ArrowRight size={14} />
-            </button>
-          </div>
-          <div className="table-responsive">
-            <table className="data-table">
-              <thead>
-                <tr>
-                  <th>Employee Name</th>
-                  <th>Department</th>
-                  <th>Leave Duration</th>
-                  <th>Reason / Category</th>
-                  <th>Applied On</th>
-                  <th>Approval Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                {slicedData.filteredLeaves.length > 0 ? (
-                  slicedData.filteredLeaves.slice(0, 6).map((item) => (
-                    <tr key={item.id}>
-                      <td>
-                        <div style={{ fontWeight: '700', color: '#0f172a' }}>{item.employee_name}</div>
-                      </td>
-                      <td>
-                        <span style={{
-                          fontSize: '0.78rem',
-                          backgroundColor: '#f1f5f9',
-                          padding: '3px 8px',
-                          borderRadius: '6px',
-                          color: '#334155',
-                          fontWeight: '600'
-                        }}>
-                          {item.department || 'General'}
-                        </span>
-                      </td>
-                      <td>
-                        <strong style={{ fontSize: '0.85rem' }}>{item.from_date?.substring(0, 10)} ➔ {item.to_date?.substring(0, 10)}</strong>
-                      </td>
-                      <td>
-                        <span style={{ color: '#334155', fontSize: '0.85rem' }}>{item.reason}</span>
-                      </td>
-                      <td>
-                        <span style={{ fontSize: '0.8rem', color: '#64748b' }}>
-                          {new Date(item.created_at).toLocaleDateString()}
-                        </span>
-                      </td>
-                      <td>
-                        <span
-                          className={`badge ${
-                            item.status === 'Approved'
-                              ? 'badge-approved'
-                              : item.status === 'Rejected'
-                              ? 'badge-rejected'
-                              : 'badge-pending'
-                          }`}
-                        >
-                          {item.status}
-                        </span>
-                      </td>
-                    </tr>
-                  ))
-                ) : (
-                  <tr>
-                    <td colSpan="6" style={{ textAlign: 'center', padding: '28px', color: '#94a3b8' }}>
-                      No leave requests match the selected slicers and search criteria.
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
+        {/* 🏷️ Power BI Bottom Footer Bar */}
+        <div style={{
+          backgroundColor: '#061138',
+          color: '#ffffff',
+          borderRadius: '4px',
+          padding: '10px 20px',
+          marginTop: '16px',
+          display: 'flex',
+          justifyContent: 'flex-end',
+          alignItems: 'center',
+          fontSize: '0.9rem',
+          fontWeight: '700',
+          letterSpacing: '0.5px'
+        }}>
+          Developed by Dhanaraj Patil | Power BI Dashboard | 2026
         </div>
 
       </div>
     </div>
   );
+};
+
+// ==========================================
+// 🎨 Power BI Exact Style Objects
+// ==========================================
+
+const powerBiKpiCardStyle = {
+  backgroundColor: '#ffffff',
+  border: '1px solid #d0d7de',
+  borderRadius: '4px',
+  padding: '12px 14px',
+  boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
+  display: 'flex',
+  flexDirection: 'column',
+  justifyContent: 'center',
+  minHeight: '82px'
+};
+
+const kpiNumberStyle = {
+  fontSize: '1.45rem',
+  fontWeight: '800',
+  color: '#0f172a',
+  marginTop: '2px',
+  fontFamily: "'Segoe UI', Roboto, sans-serif"
+};
+
+const kpiSubtextStyle = {
+  fontSize: '0.68rem',
+  color: '#64748b',
+  fontWeight: '600'
+};
+
+const powerBiChartBoxStyle = {
+  backgroundColor: '#ffffff',
+  border: '1px solid #d0d7de',
+  borderRadius: '4px',
+  padding: '12px 14px',
+  boxShadow: '0 1px 3px rgba(0,0,0,0.04)'
+};
+
+const chartHeaderStyle = {
+  fontSize: '0.8rem',
+  fontWeight: '700',
+  color: '#0f172a',
+  marginBottom: '4px',
+  fontFamily: "'Segoe UI', Roboto, sans-serif"
+};
+
+const powerBiSlicerCardStyle = {
+  backgroundColor: '#ffffff',
+  border: '1px solid #d0d7de',
+  borderRadius: '4px',
+  overflow: 'hidden',
+  boxShadow: '0 1px 3px rgba(0,0,0,0.04)'
+};
+
+const slicerHeaderStyle = {
+  backgroundColor: '#f8fafc',
+  borderBottom: '1px solid #e2e8f0',
+  padding: '6px 10px',
+  fontSize: '0.78rem',
+  fontWeight: '800',
+  color: '#0f172a',
+  fontFamily: "'Segoe UI', Roboto, sans-serif"
 };
 
 export default AdminDashboard;
