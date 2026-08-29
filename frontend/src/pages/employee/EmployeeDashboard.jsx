@@ -96,62 +96,9 @@ const EmployeeDashboard = () => {
           />
         </div>
 
-        {/* 👤 Profile Overview & Quick Actions */}
+        {/* 📊 Workplace Attendance & Quick Operations Grid */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '24px', marginBottom: '24px' }}>
           
-          {/* Profile Card */}
-          <div className="card" style={{ margin: 0 }}>
-            <div className="card-header">
-              <h2>My Staff Profile</h2>
-              <span className="badge badge-employee">Employee #{user?.id}</span>
-            </div>
-            <div style={{ padding: '24px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '20px' }}>
-                <div style={{
-                  width: '54px',
-                  height: '54px',
-                  borderRadius: '50%',
-                  background: 'linear-gradient(135deg, #4f46e5, #a855f7)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  color: 'white',
-                  fontWeight: '800',
-                  fontSize: '1.25rem',
-                  boxShadow: '0 4px 12px rgba(79, 70, 229, 0.3)'
-                }}>
-                  {user?.name ? user.name.substring(0, 2).toUpperCase() : 'EM'}
-                </div>
-                <div>
-                  <h3 style={{ fontSize: '1.15rem', fontWeight: '800', color: '#0f172a' }}>{user?.name}</h3>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '2px' }}>
-                    <Briefcase size={14} color="#64748b" />
-                    <span style={{ fontSize: '0.85rem', color: '#64748b', fontWeight: '600' }}>
-                      {user?.designation || 'Software Engineer'}
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              <div style={{ borderTop: '1px solid #f1f5f9', paddingTop: '16px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '0.88rem', color: '#334155' }}>
-                  <Mail size={16} color="#64748b" />
-                  <span><strong>Email:</strong> {user?.email}</span>
-                </div>
-
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '0.88rem', color: '#334155' }}>
-                  <Phone size={16} color="#64748b" />
-                  <span><strong>Phone:</strong> {user?.phone || 'Not provided'}</span>
-                </div>
-
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '0.88rem', color: '#334155' }}>
-                  <Building size={16} color="#64748b" />
-                  <span><strong>Department:</strong> {user?.department || 'Information Technology'}</span>
-                </div>
-              </div>
-            </div>
-          </div>
-
           {/* Workplace Attendance & Leave Summary */}
           <div className="card" style={{ margin: 0 }}>
             <div className="card-header">
@@ -199,6 +146,72 @@ const EmployeeDashboard = () => {
                 </div>
                 <span className={`badge ${stats.pending_leaves > 0 ? 'badge-pending' : 'badge-employee'}`} style={{ fontSize: '0.82rem' }}>
                   {stats.pending_leaves} Requests
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* Employee Quick Actions & Shortcuts Card */}
+          <div className="card" style={{ margin: 0 }}>
+            <div className="card-header">
+              <h2>Workforce Actions & Services</h2>
+              <span className="badge badge-employee">Quick Services</span>
+            </div>
+            <div style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '14px', justifyContent: 'center' }}>
+              <button
+                onClick={() => navigate('/employee/apply-leave')}
+                className="btn btn-primary"
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  padding: '14px 18px',
+                  borderRadius: '10px',
+                  fontSize: '0.92rem',
+                  fontWeight: '700'
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <Send size={18} />
+                  <span>Submit New Leave Application</span>
+                </div>
+                <ArrowRight size={16} />
+              </button>
+
+              <button
+                onClick={() => navigate('/employee/my-attendance')}
+                className="btn btn-secondary"
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  padding: '14px 18px',
+                  borderRadius: '10px',
+                  fontSize: '0.92rem',
+                  fontWeight: '700'
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <Calendar size={18} />
+                  <span>View Monthly Attendance History</span>
+                </div>
+                <ArrowRight size={16} />
+              </button>
+
+              <div style={{
+                backgroundColor: '#f8fafc',
+                padding: '10px 14px',
+                borderRadius: '8px',
+                border: '1px solid #f1f5f9',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                fontSize: '0.8rem',
+                color: '#64748b'
+              }}>
+                <span>Duty Status:</span>
+                <span className="badge badge-approved" style={{ fontSize: '0.75rem' }}>
+                  ● Active On-Duty
                 </span>
               </div>
             </div>

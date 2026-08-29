@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { NavLink } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import ProfileModal from './ProfileModal';
 import {
   LayoutDashboard,
   Users,
@@ -10,11 +11,13 @@ import {
   Send,
   Calendar,
   Layers,
-  X
+  X,
+  User
 } from 'lucide-react';
 
 const Sidebar = () => {
   const { user, sidebarOpen, closeSidebar } = useAuth();
+  const [profileModalOpen, setProfileModalOpen] = useState(false);
   const isAdmin = user?.role === 'admin';
 
   // Get initials for avatar (e.g. DP for Dhanaraj Patil)
@@ -145,17 +148,36 @@ const Sidebar = () => {
           )}
         </nav>
 
-        {/* Mini Profile Footer */}
+        {/* Mini Profile Footer - Interactive on Click */}
         <div className="sidebar-footer">
-          <div className="user-mini-profile">
+          <div
+            className="user-mini-profile"
+            onClick={() => setProfileModalOpen(true)}
+            style={{
+              cursor: 'pointer',
+              transition: 'all 0.2s ease',
+              borderRadius: '8px',
+              padding: '6px 8px'
+            }}
+            title="Click to view My Profile"
+          >
             <div className="avatar-circle">{getInitials(user?.name)}</div>
-            <div className="user-info">
-              <div className="user-name">{user?.name}</div>
-              <div className="user-role-badge">{user?.department || user?.role}</div>
+            <div className="user-info" style={{ flex: 1 }}>
+              <div className="user-name" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <span>{user?.name}</span>
+              </div>
+              <div className="user-role-badge">{user?.department || user?.role} • View Profile ➔</div>
             </div>
           </div>
         </div>
       </aside>
+
+      {/* Staff Profile Modal Popup */}
+      <ProfileModal
+        isOpen={profileModalOpen}
+        onClose={() => setProfileModalOpen(false)}
+        user={user}
+      />
     </>
   );
 };
