@@ -1,21 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import API from '../../services/api';
 import Navbar from '../../components/Navbar';
-import StatCard from '../../components/StatCard';
 import {
   Building2,
   Users,
-  Briefcase,
   ChevronDown,
   ChevronUp,
-  Mail,
-  Phone,
-  Search,
-  UserPlus,
-  ShieldCheck,
-  Layers,
-  ArrowRight
+  Search
 } from 'lucide-react';
 
 const DepartmentsPage = () => {
@@ -64,61 +55,17 @@ const DepartmentsPage = () => {
       />
 
       <div className="content-container">
-        {/* 📊 Top Department Metrics */}
-        <div className="stats-grid" style={{ marginBottom: '24px' }}>
-          <StatCard
-            title="Total Departments"
-            value={departments.length}
-            description="Active organizational divisions"
-            icon={Building2}
-            color="indigo"
-          />
-          <StatCard
-            title="Total Staff Assigned"
-            value={totalEmployees}
-            description="Allocated workforce count"
-            icon={Users}
-            color="emerald"
-          />
-          <StatCard
-            title="Average Team Size"
-            value={avgTeamSize}
-            description="Members per department unit"
-            icon={Layers}
-            color="indigo"
-          />
-          <StatCard
-            title="Largest Unit"
-            value={largestDept?.department || 'N/A'}
-            description={`${largestDept?.employee_count || 0} active members assigned`}
-            icon={Briefcase}
-            color="amber"
-          />
-        </div>
-
-        {/* 🔍 Controls & Search Header */}
-        <div className="card" style={{ marginBottom: '24px' }}>
-          <div className="card-header" style={{ flexWrap: 'wrap', gap: '14px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1, minWidth: '240px' }}>
-              <div className="search-box" style={{ width: '100%', maxWidth: '360px' }}>
-                <Search size={16} color="#94a3b8" />
-                <input
-                  type="text"
-                  placeholder="Search department name..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                />
-              </div>
-            </div>
-
-            <button
-              onClick={() => navigate('/admin/employees')}
-              className="btn btn-primary"
-              style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
-            >
-              <UserPlus size={16} />
-              <span>Assign Staff in Directory</span>
-            </button>
+        {/* 🔍 Prominent Full-Width Department Search Bar */}
+        <div className="card" style={{ marginBottom: '24px', padding: '16px 20px' }}>
+          <div className="search-box" style={{ width: '100%', maxWidth: '100%' }}>
+            <Search size={18} color="#94a3b8" />
+            <input
+              type="text"
+              placeholder="Search department by name..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              style={{ fontSize: '0.95rem', width: '100%' }}
+            />
           </div>
         </div>
 
