@@ -11,7 +11,7 @@ const fallbackDataFile = path.resolve('local_db_backup.json');
 const initialDatabaseState = {
   users: [
     {
-      id: 1,
+      id: 6,
       name: 'Dhanaraj Patil',
       email: 'dhanarajpatil2008@gmail.com',
       password: '123456',
@@ -19,40 +19,40 @@ const initialDatabaseState = {
       department: 'Management',
       designation: 'System Administrator',
       role: 'admin',
-      created_at: new Date().toISOString()
+      created_at: '2026-08-23T12:07:47.000Z'
     },
     {
       id: 2,
-      name: 'Dhanaraj Patil',
-      email: 'dhanaraj@ems.com',
+      name: 'Ruturaj Jadhav',
+      email: 'ruturaj@ems.com',
       password: 'user123',
       phone: '9123456780',
       department: 'Information Technology',
       designation: 'Full Stack Developer',
       role: 'employee',
-      created_at: new Date().toISOString()
+      created_at: '2026-08-23T09:27:29.000Z'
     },
     {
       id: 3,
-      name: 'Rahul Sharma',
-      email: 'rahul@ems.com',
-      password: 'password123',
-      phone: '9876501234',
+      name: 'Jay Patole',
+      email: 'jaymaheshpatole@gmail.com',
+      password: '999999',
+      phone: '9699829465',
       department: 'Information Technology',
-      designation: 'Backend Developer',
+      designation: 'Software Engineer',
       role: 'employee',
-      created_at: new Date().toISOString()
+      created_at: '2026-08-23T09:36:30.000Z'
     },
     {
       id: 4,
-      name: 'Sneha Kulkarni',
-      email: 'sneha@ems.com',
-      password: 'password123',
-      phone: '9876505678',
-      department: 'Human Resources',
-      designation: 'HR Specialist',
+      name: 'Dhanaraj Patil',
+      email: 'dhanarajpatil440@gmail.com',
+      password: '070980',
+      phone: '9172826480',
+      department: 'Information Technology',
+      designation: 'Software Engineer',
       role: 'employee',
-      created_at: new Date().toISOString()
+      created_at: '2026-08-23T09:56:22.000Z'
     }
   ],
   records: [
@@ -61,31 +61,60 @@ const initialDatabaseState = {
       user_id: 2,
       type: 'attendance',
       date: new Date().toISOString().split('T')[0],
-      status: 'Present',
-      reason: 'On time',
-      created_at: new Date().toISOString()
+      status: 'Absent',
+      reason: 'Marked by Admin',
+      created_at: '2026-08-23T09:27:29.000Z'
     },
     {
       id: 2,
-      user_id: 3,
-      type: 'attendance',
-      date: new Date().toISOString().split('T')[0],
-      status: 'Present',
-      reason: 'On time',
-      created_at: new Date().toISOString()
+      user_id: 2,
+      type: 'leave',
+      from_date: '2026-08-25',
+      to_date: '2026-08-27',
+      status: 'Approved',
+      reason: 'Family Function Leave Request',
+      created_at: '2026-08-23T09:27:29.000Z'
     },
     {
       id: 3,
+      user_id: 2,
+      type: 'attendance',
+      date: new Date().toISOString().split('T')[0],
+      status: 'Present',
+      reason: 'Regular In-Time Entry',
+      created_at: '2026-08-23T09:32:12.000Z'
+    },
+    {
+      id: 5,
+      user_id: 4,
+      type: 'leave',
+      from_date: '2026-08-25',
+      to_date: '2026-09-02',
+      status: 'Approved',
+      reason: 'Medical Emergency',
+      created_at: '2026-08-23T12:04:25.000Z'
+    },
+    {
+      id: 6,
       user_id: 4,
       type: 'attendance',
       date: new Date().toISOString().split('T')[0],
       status: 'Present',
-      reason: 'On time',
-      created_at: new Date().toISOString()
+      reason: 'Marked by Admin',
+      created_at: '2026-08-23T12:09:39.000Z'
+    },
+    {
+      id: 8,
+      user_id: 3,
+      type: 'attendance',
+      date: new Date().toISOString().split('T')[0],
+      status: 'Present',
+      reason: 'Marked by Admin',
+      created_at: '2026-08-23T12:09:41.000Z'
     }
   ],
-  nextUserId: 5,
-  nextRecordId: 4
+  nextUserId: 10,
+  nextRecordId: 10
 };
 
 // Load saved data if exists
@@ -130,15 +159,17 @@ try {
   useMemoryFallback = true;
 }
 
-// 2. Query Executor with seamless automatic fallback
+// 2. Query Executor - Always attempts real MySQL first, falls back smoothly if MySQL is offline
 export const executeQuery = async (sql, params = []) => {
-  if (!useMemoryFallback && realPool) {
+  if (realPool) {
     try {
       const result = await realPool.query(sql, params);
       return result;
     } catch (mysqlErr) {
-      console.warn('⚠️ MySQL connection issue, switching to high-availability storage fallback:', mysqlErr.message);
-      useMemoryFallback = true;
+      // If table doesn't exist or connection refused, log and use fallback
+      if (mysqlErr.code !== 'ER_NO_SUCH_TABLE') {
+        console.warn('⚠️ MySQL query notice (using fallback):', mysqlErr.message);
+      }
     }
   }
 
