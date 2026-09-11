@@ -88,7 +88,17 @@ export const getMyAttendance = async (req, res) => {
  * ========================================================
  */
 
-// Employee submits leave request
+// Helper to calculate days between two dates inclusive
+const getLeaveDaysCount = (from, to) => {
+  if (!from || !to) return 0;
+  const start = new Date(from);
+  const end = new Date(to);
+  const diffTime = end.getTime() - start.getTime();
+  const days = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+  return days > 0 ? days : 0;
+};
+
+// Employee submits leave request with 15-day annual quota enforcement
 // Endpoint: POST /api/records/leaves/apply
 export const applyLeave = async (req, res) => {
   try {
@@ -102,6 +112,37 @@ export const applyLeave = async (req, res) => {
       });
     }
 
+    if (new Date(toDate) < new Date(fromDate)) {
+      return res.status(400).json({
+        success: false,
+        message: 'To Date cannot be earlier than From Date.'
+      });
+    }
+
+    const requestedDays = getLeaveDaysCount(fromDate, toDate);
+    const existingLeaves = await Record.getUserLeaves(userId);
+
+    // Sum up approved and pending leave days
+    let usedDays = 0;
+    existingLeaves.forEach((leave) => {
+      if (leave.status !== 'Rejected' && leave.from_date && leave.to_date) {
+        usedDays += getLeaveDaysCount(leave.from_date, leave.to_date);
+      }
+    });
+
+    const ANNUAL_LIMIT = 15;
+    const remainingDays = Math.max(0, ANNUAL_LIMIT - usedDays);
+
+    if (usedDays + requestedDays > ANNUAL_LIMIT) {
+      return res.status(400).json({
+        success: false,
+        message: `Annual leave quota exceeded! You have already used/applied for ${usedDays} day(s) out of 15 annual leaves. You can only apply for up to ${remainingDays} more day(s).`,
+        usedDays,
+        remainingDays,
+        requestedDays
+      });
+    }
+
     const leaveId = await Record.applyLeave({
       userId,
       fromDate,
@@ -111,8 +152,10 @@ export const applyLeave = async (req, res) => {
 
     res.status(201).json({
       success: true,
-      message: 'Leave application submitted successfully! (Status: Pending)',
-      leaveId
+      message: `Leave application for ${requestedDays} day(s) submitted successfully! (Status: Pending)`,
+      leaveId,
+      usedDays: usedDays + requestedDays,
+      remainingDays: remainingDays - requestedDays
     });
   } catch (error) {
     console.error('Apply Leave Error:', error);
