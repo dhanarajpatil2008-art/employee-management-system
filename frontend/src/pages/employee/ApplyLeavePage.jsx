@@ -1,7 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import API from '../../services/api';
 import Navbar from '../../components/Navbar';
-import { Send, CheckCircle2, AlertCircle, Calendar, ShieldCheck, Clock, Award } from 'lucide-react';
+import {
+  Send,
+  CheckCircle2,
+  AlertCircle,
+  Calendar,
+  ShieldCheck,
+  Clock,
+  Award,
+  AlertTriangle,
+  FileText,
+  LifeBuoy
+} from 'lucide-react';
 
 const ANNUAL_LEAVE_QUOTA = 15;
 
@@ -20,7 +31,9 @@ const ApplyLeavePage = () => {
   const [formData, setFormData] = useState({
     fromDate: '',
     toDate: '',
-    reason: ''
+    reason: '',
+    isEmergency: false,
+    emergencyReason: ''
   });
   const [myLeaves, setMyLeaves] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -67,10 +80,18 @@ const ApplyLeavePage = () => {
       return;
     }
 
-    if (isQuotaExceeded) {
+    if (isQuotaExceeded && !formData.isEmergency) {
       setMsg({
         type: 'error',
-        text: `Cannot apply! Requested duration (${requestedDays} days) exceeds your remaining quota of ${remainingQuota} day(s) out of 15 annual leaves.`
+        text: `Annual quota reached! You only have ${remainingQuota} day(s) left out of 15. Please enable the "Special Emergency Leave" option below if this is a medical or critical crisis.`
+      });
+      return;
+    }
+
+    if (formData.isEmergency && (!formData.emergencyReason || formData.emergencyReason.trim() === '')) {
+      setMsg({
+        type: 'error',
+        text: 'Please provide a valid emergency justification (Hospitalization, Medical crisis, Urgent family emergency).'
       });
       return;
     }
@@ -82,9 +103,11 @@ const ApplyLeavePage = () => {
       if (res.data.success) {
         setMsg({
           type: 'success',
-          text: `Leave application for ${requestedDays} day(s) submitted successfully (Status: Pending)!`
+          text: formData.isEmergency
+            ? `Special Emergency Leave Request for ${requestedDays} day(s) submitted for Executive HR approval!`
+            : `Leave application for ${requestedDays} day(s) submitted successfully (Status: Pending)!`
         });
-        setFormData({ fromDate: '', toDate: '', reason: '' });
+        setFormData({ fromDate: '', toDate: '', reason: '', isEmergency: false, emergencyReason: '' });
         fetchMyLeaves();
       }
     } catch (err) {
@@ -98,7 +121,7 @@ const ApplyLeavePage = () => {
     <div className="main-wrapper">
       <Navbar
         title="Apply for Leave"
-        subtitle="Submit time-off requests to HR with live annual quota enforcement (Max 15 Days/Year)"
+        subtitle="Submit time-off requests with live 15-day annual quota & Special Emergency Override"
       />
 
       <div className="content-container">
@@ -122,7 +145,7 @@ const ApplyLeavePage = () => {
               15 <span style={{ fontSize: '0.9rem', fontWeight: '600', color: '#64748b' }}>Days / Year</span>
             </div>
             <div style={{ fontSize: '0.75rem', color: '#94a3b8', marginTop: '4px' }}>
-              Total allowable yearly time-off
+              Standard Paid Annual Quota
             </div>
           </div>
 
@@ -162,7 +185,7 @@ const ApplyLeavePage = () => {
               {remainingQuota} <span style={{ fontSize: '0.9rem', fontWeight: '600', color: '#64748b' }}>Days Left</span>
             </div>
             <div style={{ fontSize: '0.75rem', color: remainingQuota > 0 ? '#10b981' : '#ef4444', marginTop: '4px', fontWeight: '600' }}>
-              {remainingQuota > 0 ? 'Quota Available' : 'Annual Quota Exhausted'}
+              {remainingQuota > 0 ? 'Quota Available' : 'Quota Exhausted (Emergency Enabled)'}
             </div>
           </div>
         </div>
@@ -174,7 +197,9 @@ const ApplyLeavePage = () => {
           <div className="card" style={{ margin: 0 }}>
             <div className="card-header">
               <h2>New Leave Application</h2>
-              <span className="badge badge-employee">Quota Cap: 15 Max</span>
+              <span className={`badge ${formData.isEmergency ? 'badge-rejected' : 'badge-employee'}`}>
+                {formData.isEmergency ? '🚨 Emergency Mode' : 'Standard 15-Day Cap'}
+              </span>
             </div>
             <div style={{ padding: '24px' }}>
               {msg.text && (
@@ -224,8 +249,8 @@ const ApplyLeavePage = () => {
                 {/* 📅 Live Duration & Quota Indicator */}
                 {formData.fromDate && formData.toDate && (
                   <div style={{
-                    backgroundColor: isQuotaExceeded ? '#fef2f2' : '#f0fdf4',
-                    border: `1px solid ${isQuotaExceeded ? '#fca5a5' : '#bbf7d0'}`,
+                    backgroundColor: (isQuotaExceeded && !formData.isEmergency) ? '#fef2f2' : formData.isEmergency ? '#fffbeb' : '#f0fdf4',
+                    border: `1px solid ${(isQuotaExceeded && !formData.isEmergency) ? '#fca5a5' : formData.isEmergency ? '#fcd34d' : '#bbf7d0'}`,
                     padding: '12px 16px',
                     borderRadius: '8px',
                     marginBottom: '16px',
@@ -239,30 +264,87 @@ const ApplyLeavePage = () => {
                       alignItems: 'center',
                       fontWeight: '700',
                       fontSize: '0.88rem',
-                      color: isQuotaExceeded ? '#b91c1c' : '#15803d'
+                      color: (isQuotaExceeded && !formData.isEmergency) ? '#b91c1c' : formData.isEmergency ? '#b45309' : '#15803d'
                     }}>
                       <span>📅 Requested Leave Duration:</span>
                       <span>{requestedDays} Day(s)</span>
                     </div>
-                    {isQuotaExceeded ? (
+                    {isQuotaExceeded && !formData.isEmergency ? (
                       <div style={{ fontSize: '0.78rem', color: '#dc2626', fontWeight: '600' }}>
-                        ⚠️ Exceeds limit! You only have {remainingQuota} day(s) remaining out of your 15 annual quota.
+                        ⚠️ Exceeds quota! You have only {remainingQuota} day(s) left out of 15. Check "Special Emergency Leave" below if critical.
+                      </div>
+                    ) : formData.isEmergency ? (
+                      <div style={{ fontSize: '0.78rem', color: '#b45309', fontWeight: '600' }}>
+                        🚨 Special Emergency Override active: This request will be routed for Executive HR Discretion.
                       </div>
                     ) : (
                       <div style={{ fontSize: '0.78rem', color: '#16a34a' }}>
-                        ✓ Quota check passed: You will have {remainingQuota - requestedDays} day(s) remaining after this request.
+                        ✓ Quota check passed: You will have {remainingQuota - requestedDays} day(s) remaining.
                       </div>
                     )}
                   </div>
                 )}
 
+                {/* 🚨 Enterprise Emergency Over-Quota Override Switch */}
+                <div style={{
+                  backgroundColor: formData.isEmergency ? '#fff1f2' : '#f8fafc',
+                  border: `1.5px dashed ${formData.isEmergency ? '#f43f5e' : '#cbd5e1'}`,
+                  padding: '14px 16px',
+                  borderRadius: '10px',
+                  marginBottom: '16px',
+                  transition: 'all 0.3s ease'
+                }}>
+                  <label style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '10px',
+                    cursor: 'pointer',
+                    margin: 0,
+                    fontWeight: '700',
+                    fontSize: '0.88rem',
+                    color: formData.isEmergency ? '#be123c' : '#334155'
+                  }}>
+                    <input
+                      type="checkbox"
+                      checked={formData.isEmergency}
+                      onChange={(e) => setFormData({ ...formData, isEmergency: e.target.checked })}
+                      style={{ width: '18px', height: '18px', accentColor: '#e11d48', cursor: 'pointer' }}
+                    />
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <LifeBuoy size={17} color={formData.isEmergency ? '#e11d48' : '#64748b'} />
+                      <span>Request as Special Emergency Leave (Quota Override)</span>
+                    </div>
+                  </label>
+                  <div style={{ fontSize: '0.74rem', color: '#64748b', marginTop: '6px', marginLeft: '28px' }}>
+                    Use when 15-day quota is exhausted for genuine Medical Emergencies, Critical Hospitalization, or Family Crisis (Subject to Executive HR Approval).
+                  </div>
+
+                  {/* Emergency Justification Input */}
+                  {formData.isEmergency && (
+                    <div style={{ marginTop: '12px', marginLeft: '28px' }}>
+                      <label style={{ fontSize: '0.8rem', fontWeight: '700', color: '#9f1239', marginBottom: '6px', display: 'block' }}>
+                        Emergency Medical / Crisis Justification:
+                      </label>
+                      <input
+                        type="text"
+                        required={formData.isEmergency}
+                        className="form-control"
+                        placeholder="e.g. Sudden Hospitalization, Surgery, Immediate Family Medical Emergency..."
+                        value={formData.emergencyReason}
+                        onChange={(e) => setFormData({ ...formData, emergencyReason: e.target.value })}
+                        style={{ borderColor: '#fca5a5', backgroundColor: '#ffffff' }}
+                      />
+                    </div>
+                  )}
+                </div>
+
                 <div className="form-group" style={{ marginBottom: '20px' }}>
                   <label>Reason for Leave</label>
                   <textarea
-                    rows={4}
+                    rows={3}
                     required
                     className="form-control"
-                    placeholder="Provide a reason for your leave request (e.g. Medical emergency, Family function, Urgent personal work)..."
+                    placeholder="Provide detailed explanation for your leave request..."
                     value={formData.reason}
                     onChange={(e) => setFormData({ ...formData, reason: e.target.value })}
                   ></textarea>
@@ -270,24 +352,24 @@ const ApplyLeavePage = () => {
 
                 <button
                   type="submit"
-                  className="btn btn-primary"
+                  className={`btn ${formData.isEmergency ? 'btn-danger' : 'btn-primary'}`}
                   style={{
                     width: '100%',
                     padding: '13px',
-                    opacity: (isQuotaExceeded || remainingQuota === 0) ? 0.6 : 1,
-                    cursor: (isQuotaExceeded || remainingQuota === 0) ? 'not-allowed' : 'pointer'
+                    opacity: (isQuotaExceeded && !formData.isEmergency) ? 0.6 : 1,
+                    cursor: (isQuotaExceeded && !formData.isEmergency) ? 'not-allowed' : 'pointer'
                   }}
-                  disabled={loading || isQuotaExceeded || remainingQuota === 0}
+                  disabled={loading || (isQuotaExceeded && !formData.isEmergency)}
                 >
                   <Send size={16} />
                   <span>
-                    {remainingQuota === 0
-                      ? 'Annual Quota Exhausted (15/15 Used)'
+                    {formData.isEmergency
+                      ? `🚨 Submit Emergency Leave Request (${requestedDays || 0} Days)`
                       : isQuotaExceeded
-                      ? 'Requested Days Exceed Quota'
+                      ? 'Quota Exceeded (Enable Emergency Above)'
                       : loading
                       ? 'Submitting Request...'
-                      : 'Submit Leave Request'}
+                      : 'Submit Standard Leave Request'}
                   </span>
                 </button>
               </form>
@@ -306,7 +388,7 @@ const ApplyLeavePage = () => {
                 <thead>
                   <tr>
                     <th>Duration & Days</th>
-                    <th>Reason</th>
+                    <th>Reason & Type</th>
                     <th>Status</th>
                   </tr>
                 </thead>
@@ -314,14 +396,17 @@ const ApplyLeavePage = () => {
                   {myLeaves.length > 0 ? (
                     myLeaves.map((leave) => {
                       const daysCount = getLeaveDaysCount(leave.from_date, leave.to_date);
+                      const isEmergencyItem = leave.reason?.includes('[🚨 EMERGENCY OVER-QUOTA]');
+                      const cleanReason = leave.reason?.replace('[🚨 EMERGENCY OVER-QUOTA]', '').trim();
+
                       return (
                         <tr key={leave.id}>
                           <td>
                             <div style={{ fontWeight: '700', fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
                               <span>{leave.from_date?.substring(0, 10)} ➔ {leave.to_date?.substring(0, 10)}</span>
                               <span style={{
-                                backgroundColor: '#e0e7ff',
-                                color: '#4338ca',
+                                backgroundColor: isEmergencyItem ? '#fee2e2' : '#e0e7ff',
+                                color: isEmergencyItem ? '#b91c1c' : '#4338ca',
                                 padding: '2px 6px',
                                 borderRadius: '4px',
                                 fontSize: '0.74rem',
@@ -335,7 +420,24 @@ const ApplyLeavePage = () => {
                             </div>
                           </td>
                           <td>
-                            <div style={{ fontSize: '0.85rem', maxWidth: '180px', color: '#334155' }}>{leave.reason}</div>
+                            {isEmergencyItem && (
+                              <div style={{ marginBottom: '4px' }}>
+                                <span style={{
+                                  backgroundColor: '#fee2e2',
+                                  color: '#dc2626',
+                                  fontSize: '0.7rem',
+                                  fontWeight: '800',
+                                  padding: '2px 6px',
+                                  borderRadius: '4px',
+                                  border: '1px solid #fca5a5'
+                                }}>
+                                  🚨 Emergency Over-Quota
+                                </span>
+                              </div>
+                            )}
+                            <div style={{ fontSize: '0.84rem', maxWidth: '190px', color: '#334155' }}>
+                              {cleanReason}
+                            </div>
                           </td>
                           <td>
                             <span
@@ -394,7 +496,7 @@ const ApplyLeavePage = () => {
 
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.78rem', color: '#64748b' }}>
                 <span>Remaining Quota: <strong>{remainingQuota} Days</strong></span>
-                <span>Max Yearly Limit: <strong>15 Days</strong></span>
+                <span>Emergency Override: <strong style={{ color: '#059669' }}>Enabled</strong></span>
               </div>
             </div>
 

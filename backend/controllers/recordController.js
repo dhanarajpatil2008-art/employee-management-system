@@ -98,12 +98,12 @@ const getLeaveDaysCount = (from, to) => {
   return days > 0 ? days : 0;
 };
 
-// Employee submits leave request with 15-day annual quota enforcement
+// Employee submits leave request with 15-day annual quota enforcement + Emergency Quota Override Support
 // Endpoint: POST /api/records/leaves/apply
 export const applyLeave = async (req, res) => {
   try {
     const userId = req.user.id;
-    const { fromDate, toDate, reason } = req.body;
+    const { fromDate, toDate, reason, isEmergency, emergencyReason } = req.body;
 
     if (!fromDate || !toDate || !reason) {
       return res.status(400).json({
@@ -134,28 +134,38 @@ export const applyLeave = async (req, res) => {
     const remainingDays = Math.max(0, ANNUAL_LIMIT - usedDays);
 
     if (usedDays + requestedDays > ANNUAL_LIMIT) {
-      return res.status(400).json({
-        success: false,
-        message: `Annual leave quota exceeded! You have already used/applied for ${usedDays} day(s) out of 15 annual leaves. You can only apply for up to ${remainingDays} more day(s).`,
-        usedDays,
-        remainingDays,
-        requestedDays
-      });
+      if (!isEmergency) {
+        return res.status(400).json({
+          success: false,
+          allowEmergencyOverride: true,
+          message: `Annual quota exceeded! You have already consumed ${usedDays}/15 days. For genuine medical/critical crises, you can apply under "Special Emergency Leave Request".`,
+          usedDays,
+          remainingDays,
+          requestedDays
+        });
+      }
     }
+
+    const formattedReason = isEmergency
+      ? `[🚨 EMERGENCY OVER-QUOTA] ${reason}${emergencyReason ? ` | Medical/Crisis Note: ${emergencyReason}` : ''}`
+      : reason;
 
     const leaveId = await Record.applyLeave({
       userId,
       fromDate,
       toDate,
-      reason
+      reason: formattedReason
     });
 
     res.status(201).json({
       success: true,
-      message: `Leave application for ${requestedDays} day(s) submitted successfully! (Status: Pending)`,
+      message: isEmergency
+        ? `Special Emergency Leave Request for ${requestedDays} day(s) submitted for Executive HR approval!`
+        : `Leave application for ${requestedDays} day(s) submitted successfully! (Status: Pending)`,
       leaveId,
+      isEmergency: !!isEmergency,
       usedDays: usedDays + requestedDays,
-      remainingDays: remainingDays - requestedDays
+      remainingDays: Math.max(0, remainingDays - requestedDays)
     });
   } catch (error) {
     console.error('Apply Leave Error:', error);
